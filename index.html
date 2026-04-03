@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>VirtualStorage · Ethereal Cloud Vault</title>
+  <!-- TailwindCSS + Font Awesome + Google Fonts -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at 10% 20%, rgba(10, 5, 30, 1) 0%, rgba(25, 10, 45, 1) 50%, rgba(15, 5, 35, 1) 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+      position: relative;
+      overflow-x: hidden;
+    }
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+      animation: float 20s infinite ease-in-out;
+    }
+    .orb-1 { width: 500px; height: 500px; background: #ff69b4; top: -200px; left: -200px; }
+    .orb-2 { width: 600px; height: 600px; background: #8b5cf6; bottom: -250px; right: -200px; animation-delay: -5s; }
+    .orb-3 { width: 400px; height: 400px; background: #06b6d4; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; opacity: 0.2; }
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+    .glass-card {
+      background: rgba(20, 15, 40, 0.55);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+    }
+    .glass-card-sidebar {
+      background: rgba(15, 10, 35, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 1.5rem;
+    }
+    .file-card {
+      background: linear-gradient(135deg, rgba(30, 25, 55, 0.8) 0%, rgba(25, 20, 50, 0.9) 100%);
+      backdrop-filter: blur(8px);
+      border-radius: 1.2rem;
+      border: 1px solid rgba(255, 105, 180, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .file-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 105, 180, 0.1), transparent);
+      transition: left 0.5s;
+    }
+    .file-card:hover::before {
+      left: 100%;
+    }
+    .file-card:hover {
+      transform: translateY(-6px) scale(1.02);
+      border-color: rgba(255, 105, 180, 0.5);
+      box-shadow: 0 20px 30px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 105, 180, 0.3);
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #ff69b4, #8b5cf6); border-radius: 10px; }
+    .storage-bar {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      overflow: hidden;
+    }
+    .storage-fill {
+      background: linear-gradient(90deg, #ff69b4, #a855f7, #06b6d4);
+      width: 0%;
+      height: 8px;
+      border-radius: 20px;
+      transition: width 0.4s ease;
+      position: relative;
+    }
+    .storage-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+      border-radius: 20px;
+    }
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(0, 0, 0, 0.9);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 105, 180, 0.4);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 60px;
+      font-weight: 500;
+      z-index: 999;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: #ef4444; background: rgba(0, 0, 0, 0.95); }
+    .toast.success { border-color: #10b981; }
+    .active-filter {
+      background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(139, 92, 246, 0.2));
+      border-left: 3px solid #ff69b4;
+      color: white;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #ff69b4, #a855f7);
+      transition: all 0.2s ease;
+    }
+    .btn-primary:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 20px -5px rgba(255, 105, 180, 0.4);
+    }
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ff69b4, #a855f7);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .sakura-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .content-layer { position: relative; z-index: 2; }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .file-card { animation: fadeInUp 0.4s ease backwards; }
+    
+    /* Progress Modal Styles - Like Google Drive */
+    .progress-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 1100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      visibility: hidden;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    .progress-overlay.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    .progress-card {
+      background: rgba(25, 20, 50, 0.98);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 105, 180, 0.3);
+      border-radius: 1.5rem;
+      padding: 1.8rem;
+      width: 90%;
+      max-width: 460px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      animation: fadeInUp 0.4s ease;
+    }
+    .progress-bar-container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      height: 8px;
+      overflow: hidden;
+      margin: 1.5rem 0;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, #ff69b4, #a855f7, #06b6d4);
+      width: 0%;
+      height: 100%;
+      border-radius: 100px;
+      transition: width 0.2s ease;
+      position: relative;
+    }
+    .progress-bar-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 30px;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+      border-radius: 100px;
+    }
+    .file-progress-item {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      transition: all 0.2s;
+    }
+    .file-progress-item.completed {
+      border-left: 3px solid #10b981;
+      opacity: 0.8;
+    }
+    .file-progress-item.failed {
+      border-left: 3px solid #ef4444;
+    }
+    .circular-progress {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, #ff69b4 0deg, rgba(255,255,255,0.2) 0deg);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    .login-card {
+      background: rgba(20, 15, 40, 0.98);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 105, 180, 0.3);
+      border-radius: 2rem;
+      padding: 2rem;
+      width: 90%;
+      max-width: 420px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      animation: fadeInUp 0.5s ease;
+    }
+    .input-error { border-color: #ef4444 !important; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+    .shake { animation: shake 0.5s ease-in-out; }
+  </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<canvas id="sakuraCanvas" class="sakura-canvas"></canvas>
+
+<!-- Upload Progress Modal -->
+<div id="progressModal" class="progress-overlay">
+  <div class="progress-card">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xl font-bold text-white flex items-center gap-2">
+        <i class="fas fa-cloud-upload-alt text-pink-400"></i> Uploading to Cloud
+      </h3>
+      <span id="overallPercent" class="text-sm text-pink-400 font-semibold">0%</span>
+    </div>
+    <div class="progress-bar-container">
+      <div id="overallProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+    </div>
+    <div id="fileProgressList" class="max-h-64 overflow-y-auto space-y-2 mb-4"></div>
+    <div id="uploadSummary" class="text-center text-sm text-gray-400 hidden"></div>
+  </div>
+</div>
+
+<!-- Login Modal -->
+<div id="loginModal" class="modal-overlay" style="display: none;">
+  <div class="login-card">
+    <div class="flex justify-center mb-4">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
+        <i class="fas fa-lock text-3xl text-white"></i>
+      </div>
+    </div>
+    <h2 class="text-2xl font-bold text-center text-white mb-2">Welcome Back</h2>
+    <p class="text-center text-gray-400 text-sm mb-6">Sign in to access your cloud vault</p>
+    <div id="loginErrorMsg" class="mb-4 hidden">
+      <div class="bg-red-500/20 border border-red-500/50 rounded-xl px-4 py-2 text-red-300 text-sm flex items-center gap-2">
+        <i class="fas fa-exclamation-triangle"></i> <span id="loginErrorText"></span>
+      </div>
+    </div>
+    <div class="space-y-4">
+      <div><label class="block text-gray-300 text-sm mb-2"><i class="fas fa-user mr-2"></i>Username</label>
+      <input type="text" id="loginUsername" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 transition" placeholder="admin"></div>
+      <div><label class="block text-gray-300 text-sm mb-2"><i class="fas fa-key mr-2"></i>Password</label>
+      <input type="password" id="loginPassword" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 transition" placeholder="••••••"></div>
+      <button id="loginBtn" class="w-full py-3 rounded-xl btn-primary text-white font-semibold flex items-center justify-center gap-2 transition-all mt-4"><i class="fas fa-arrow-right-to-bracket"></i> Authenticate</button>
+      
+    </div>
+  </div>
+</div>
+
+<div class="content-layer max-w-7xl mx-auto px-4 py-6">
+  <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+    <div class="text-center md:text-left">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg"><i class="fas fa-cloud-moon text-2xl text-white"></i></div>
+        <div><h1 class="text-3xl md:text-4xl font-extrabold tracking-tight"><span class="bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">VirtualStorage</span></h1>
+        <p class="text-gray-400 text-sm">✦ Ethereal Cloud Storage ✦</p></div>
+      </div>
+    </div>
+    <div class="flex gap-3">
+      <button id="logoutHeaderBtn" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-red-500/20 transition-all flex items-center gap-2 text-sm hidden"><i class="fas fa-sign-out-alt"></i> Logout</button>
+      <label for="uploadInput" id="uploadLabel" class="cursor-pointer px-6 py-3 rounded-xl btn-primary text-white font-semibold flex items-center gap-2 shadow-lg transition-all hover:shadow-pink-500/25 opacity-50 pointer-events-none"><i class="fas fa-plus-circle"></i> Upload<input type="file" id="uploadInput" multiple class="hidden" accept="image/*,video/*,application/pdf"></label>
+    </div>
+  </div>
+  <div class="flex flex-col lg:flex-row gap-6">
+    <div class="lg:w-80 w-full">
+      <div class="glass-card-sidebar p-6 rounded-2xl sticky top-6">
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-white/5 rounded-xl p-3 text-center"><i class="fas fa-database text-pink-400 text-xl mb-1"></i><div class="stat-number text-xl" id="fileCountBadge">0</div><div class="text-xs text-gray-400">Total Files</div></div>
+          <div class="bg-white/5 rounded-xl p-3 text-center"><i class="fas fa-chart-line text-purple-400 text-xl mb-1"></i><div class="stat-number text-xl" id="storageUsedText">0 MB</div><div class="text-xs text-gray-400">Used Space</div></div>
+        </div>
+        <div class="mb-6"><div class="flex justify-between text-sm text-gray-300 mb-2"><span><i class="fas fa-hdd"></i> Storage Quota</span><span id="storagePercent">0%</span></div><div class="storage-bar"><div id="storageFillBar" class="storage-fill"></div></div><div class="text-xs text-gray-500 mt-2 text-center">of 1 GB · <span id="syncStatus" class="text-yellow-400">Locked</span></div></div>
+        <div><h3 class="text-gray-300 font-semibold text-sm mb-3 flex items-center gap-2"><i class="fas fa-sliders-h text-pink-400"></i> Filters</h3>
+          <div class="space-y-1.5"><button data-filter="all" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-grid-2 w-5"></i> All Files</button>
+          <button data-filter="image" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-image w-5 text-pink-400"></i> Images</button>
+          <button data-filter="video" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-video w-5 text-purple-400"></i> Videos</button></div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-white/10 text-center text-xs text-gray-500"><i class="fas fa-shield-alt"></i> Secured Access</div>
+      </div>
+    </div>
+    <div class="flex-1 glass-card p-6 rounded-2xl">
+      <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+        <div><h2 class="text-2xl font-bold text-white flex items-center gap-2"><i class="fas fa-folder-open text-pink-400"></i><span id="filterLabel">Authentication Required</span></h2><p class="text-gray-400 text-sm mt-1" id="subtitleMsg">Please login to access your cloud vault</p></div>
+        <button id="refreshBtn" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all flex items-center gap-2 text-sm opacity-50 cursor-not-allowed" disabled><i class="fas fa-sync-alt"></i> Sync</button>
+      </div>
+      <div id="fileGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-5"><div class="col-span-full text-center py-20"><div class="inline-block"><i class="fas fa-lock text-5xl text-pink-400/50 mb-4 block"></i><p class="text-gray-400">Login to view your stored files</p></div></div></div>
+    </div>
+  </div>
+</div>
+<div id="toastMessage" class="toast"><i class="fas fa-sparkle mr-2"></i> <span id="toastText"></span></div>
+
+<script>
+  const SUPABASE_URL = "https://ozhajurzoxxdypvgasdv.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96aGFqdXJ6b3h4ZHlwdmdhc2R2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDIxODksImV4cCI6MjA5MDcxODE4OX0.tO5Lap3Y0Dl3vbk7LswRywEah4lATN130gOJX5HkOt0";
+  const VALID_USERNAME = "admin", VALID_PASSWORD = "auth@123";
+  let supabaseClient = null, currentFilter = 'all', allFilesMetadata = [], isAuthenticated = false;
+  const MAX_BYTES = 1 * 1024 * 1024 * 1024, STORAGE_BUCKET = 'anime-files', TABLE_NAME = 'user_files';
+
+  function showToast(msg, isErr = false) {
+    const toastDiv = document.getElementById('toastMessage'), toastSpan = document.getElementById('toastText');
+    toastSpan.innerHTML = msg;
+    toastDiv.classList.remove('error', 'success');
+    toastDiv.classList.add(isErr ? 'error' : 'success');
+    toastDiv.classList.add('show');
+    setTimeout(() => toastDiv.classList.remove('show'), 3000);
+  }
+
+  // Progress Modal Functions
+  function showProgressModal() { document.getElementById('progressModal').classList.add('active'); }
+  function hideProgressModal() { document.getElementById('progressModal').classList.remove('active'); }
+  
+  async function uploadWithProgress(files) {
+    if (!supabaseClient || !isAuthenticated) { showToast("❌ Please login first!", true); showLoginModal(); return false; }
+    let currentUsed = await getTotalUsedBytes();
+    let totalIncoming = Array.from(files).reduce((s,f)=>s+f.size,0);
+    if (currentUsed + totalIncoming > MAX_BYTES) { showToast("❌ Exceeds 1GB limit", true); return false; }
+    
+    // Prepare UI
+    showProgressModal();
+    const fileListContainer = document.getElementById('fileProgressList');
+    const overallBar = document.getElementById('overallProgressBar');
+    const overallPercentSpan = document.getElementById('overallPercent');
+    let completed = 0, failed = 0;
+    const fileResults = [];
+    
+    fileListContainer.innerHTML = '';
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'file-progress-item';
+      itemDiv.id = `progress-item-${i}`;
+      itemDiv.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fas fa-file-alt text-pink-400 text-xs"></i></div>
+            <div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate">${escapeHtml(file.name)}</p><p class="text-gray-400 text-xs">${formatBytes(file.size)}</p></div>
+          </div>
+          <div class="text-right"><span class="file-percent text-xs text-pink-400">0%</span></div>
+        </div>
+        <div class="progress-bar-container mt-2" style="height:4px; margin:0.5rem 0 0 0"><div class="progress-bar-fill" style="width:0%; height:4px;" id="progress-fill-${i}"></div></div>
+      `;
+      fileListContainer.appendChild(itemDiv);
+    }
+    
+    for (let idx = 0; idx < files.length; idx++) {
+      const file = files[idx];
+      const nowUsed = await getTotalUsedBytes();
+      if (nowUsed + file.size > MAX_BYTES) { showToast(`Skipped ${file.name}`, true); failed++; continue; }
+      const fileId = crypto.randomUUID();
+      try {
+        // Simulate progress tracking (Supabase doesn't expose upload progress directly, but we can simulate via chunks or just animate)
+        // We'll use a smooth progress simulation while upload happens
+        let progressInterval;
+        const progressFill = document.getElementById(`progress-fill-${idx}`);
+        const percentSpan = document.querySelector(`#progress-item-${idx} .file-percent`);
+        
+        // Simulate progress from 0 to 90% while upload happens
+        let simulatedProgress = 0;
+        progressInterval = setInterval(() => {
+          if (simulatedProgress < 90) {
+            simulatedProgress += Math.random() * 15;
+            if (simulatedProgress > 90) simulatedProgress = 90;
+            if (progressFill) progressFill.style.width = `${simulatedProgress}%`;
+            if (percentSpan) percentSpan.innerText = `${Math.floor(simulatedProgress)}%`;
+          }
+        }, 200);
+        
+        // Actual upload
+        const fileExt = file.name.split('.').pop() || 'bin';
+        const storagePath = `${fileId}.${fileExt}`;
+        const { error: uploadError } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(storagePath, file, { contentType: file.type, upsert: false });
+        if (uploadError) throw uploadError;
+        
+        clearInterval(progressInterval);
+        if (progressFill) progressFill.style.width = `100%`;
+        if (percentSpan) percentSpan.innerText = `100%`;
+        
+        const deviceId = localStorage.getItem('device_user_id') || crypto.randomUUID();
+        localStorage.setItem('device_user_id', deviceId);
+        const { error: insertError } = await supabaseClient.from(TABLE_NAME).insert({
+          id: fileId, name: file.name, size: file.size, type: file.type, storage_path: storagePath, uploaded_at: Date.now(), user_id: deviceId
+        });
+        if (insertError) { await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]).catch(e=>null); throw insertError; }
+        
+        document.querySelector(`#progress-item-${idx}`).classList.add('completed');
+        completed++;
+      } catch(err) {
+        const progressFill = document.getElementById(`progress-fill-${idx}`);
+        if (progressFill) progressFill.style.backgroundColor = '#ef4444';
+        document.querySelector(`#progress-item-${idx}`).classList.add('failed');
+        failed++;
+      }
+      const overallPercent = ((completed + failed) / files.length) * 100;
+      overallBar.style.width = `${overallPercent}%`;
+      overallPercentSpan.innerText = `${Math.floor(overallPercent)}%`;
+    }
+    
+    // Final summary
+    const summaryDiv = document.getElementById('uploadSummary');
+    summaryDiv.classList.remove('hidden');
+    summaryDiv.innerHTML = `<i class="fas fa-check-circle text-green-400"></i> ${completed} uploaded | <i class="fas fa-times-circle text-red-400"></i> ${failed} failed`;
+    setTimeout(() => { hideProgressModal(); summaryDiv.classList.add('hidden'); }, 2500);
+    if (completed) { showToast(`✨ ${completed} file(s) uploaded!`); await refreshAllData(); }
+    return true;
+  }
+
+  async function initSupabaseClient() { const { createClient } = window.supabase; return createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+  async function fetchAllMetadataFromSupabase() { if (!supabaseClient || !isAuthenticated) return []; const { data, error } = await supabaseClient.from(TABLE_NAME).select('id, name, size, type, storage_path, uploaded_at').order('uploaded_at', { ascending: false }); if (error) return []; return data.map(f => ({ id: f.id, name: f.name, size: Number(f.size), type: f.type, uploadedAt: f.uploaded_at, storagePath: f.storage_path })); }
+  async function getTotalUsedBytes() { if (!supabaseClient || !isAuthenticated) return 0; const { data, error } = await supabaseClient.from(TABLE_NAME).select('size'); if (error) return 0; return data.reduce((sum, f) => sum + (f.size || 0), 0); }
+  async function deleteFileFromSupabase(fileId, storagePath) { if (!supabaseClient || !isAuthenticated) throw new Error("Auth required"); if (storagePath) await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]); const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', fileId); if (error) throw error; }
+  async function downloadFileFromSupabase(storagePath, originalName) { if (!supabaseClient || !isAuthenticated) throw new Error("Auth required"); const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath); if (error) throw error; const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = originalName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
+  function getPublicUrl(storagePath) { if (!supabaseClient || !storagePath || !isAuthenticated) return null; const { data } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath); return data.publicUrl; }
+  function getFileCategory(mime, filename) { const ext = filename.split('.').pop().toLowerCase(); if (mime.startsWith('image/') || ['jpg','jpeg','png','gif','webp'].includes(ext)) return 'image'; if (mime.startsWith('video/') || ['mp4','webm','mov'].includes(ext)) return 'video'; return 'file'; }
+  
+  async function refreshAllData() {
+    if (!supabaseClient || !isAuthenticated) { renderLockedGrid(); document.getElementById('storageUsedText').innerHTML = `0 MB`; document.getElementById('storageFillBar').style.width = '0%'; document.getElementById('fileCountBadge').innerHTML = `0`; document.getElementById('storagePercent').innerHTML = `0%`; return; }
+    const meta = await fetchAllMetadataFromSupabase(); allFilesMetadata = meta; await updateStorageMeterUI(); await renderGrid();
+  }
+  function renderLockedGrid() { const grid = document.getElementById('fileGrid'); grid.innerHTML = `<div class="col-span-full text-center py-20"><i class="fas fa-lock text-5xl text-pink-400/50 mb-4 block"></i><p class="text-gray-400">Login to view your stored files</p><button id="unlockFromGridBtn" class="mt-4 px-6 py-2 rounded-xl btn-primary text-white text-sm flex items-center gap-2 mx-auto"><i class="fas fa-sign-in-alt"></i> Sign In</button></div>`; document.getElementById('unlockFromGridBtn')?.addEventListener('click', () => showLoginModal()); }
+  async function updateStorageMeterUI() { const usedBytes = await getTotalUsedBytes(); const percent = (usedBytes / MAX_BYTES) * 100; document.getElementById('storageFillBar').style.width = `${Math.min(percent, 100)}%`; document.getElementById('storageUsedText').innerHTML = `${(usedBytes / (1024*1024)).toFixed(2)} MB`; document.getElementById('storagePercent').innerHTML = `${Math.min(percent, 100).toFixed(1)}%`; document.getElementById('fileCountBadge').innerHTML = `${allFilesMetadata.length}`; }
+  async function renderGrid() { if (!isAuthenticated) { renderLockedGrid(); return; } let filtered = [...allFilesMetadata]; if (currentFilter === 'image') filtered = filtered.filter(f => getFileCategory(f.type, f.name) === 'image'); else if (currentFilter === 'video') filtered = filtered.filter(f => getFileCategory(f.type, f.name) === 'video'); if (filtered.length === 0) { document.getElementById('fileGrid').innerHTML = `<div class="col-span-full text-center py-20"><i class="fas fa-cherry-blossom text-5xl text-pink-400/50 mb-4 block"></i><p class="text-gray-400">${currentFilter !== 'all' ? `No ${currentFilter}s found` : 'Upload your first memory!'}</p></div>`; return; } let html = ''; for (const file of filtered) { const category = getFileCategory(file.type, file.name); const sizeFormatted = formatBytes(file.size); const fileNameShort = file.name.length > 25 ? file.name.substring(0,22)+'...' : file.name; const publicUrl = getPublicUrl(file.storagePath); let mediaHtml = category === 'image' ? `<div class="relative w-full h-36 bg-gradient-to-br from-purple-900/40 to-pink-900/40 rounded-t-xl overflow-hidden"><img src="${publicUrl || ''}" class="w-full h-36 object-cover" alt="preview" loading="lazy" onerror="this.style.display='none';"></div>` : (category === 'video' ? `<div class="h-36 w-full bg-gradient-to-br from-indigo-900/50 to-purple-900/50 flex items-center justify-center rounded-t-xl"><i class="fas fa-play-circle text-5xl text-pink-400/60"></i></div>` : `<div class="h-36 w-full bg-gradient-to-br from-gray-800/50 to-purple-900/30 flex items-center justify-center rounded-t-xl"><i class="fas fa-file-alt text-5xl text-purple-400/60"></i></div>`); html += `<div class="file-card group" data-file-id="${file.id}" data-storage-path="${escapeHtml(file.storagePath || '')}" data-file-name="${escapeHtml(file.name)}"><div>${mediaHtml}</div><div class="p-3"><div class="flex justify-between items-start mb-1"><p class="font-semibold text-sm text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(fileNameShort)}</p><span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-pink-300">${category === 'image' ? '📷' : (category === 'video' ? '🎬' : '📄')}</span></div><div class="text-xs text-gray-400 flex justify-between"><span>${sizeFormatted}</span><span><i class="far fa-clock"></i> ${new Date(file.uploadedAt).toLocaleDateString()}</span></div><div class="flex gap-2 mt-3"><button class="download-btn flex-1 bg-white/5 hover:bg-cyan-500/20 text-cyan-300 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1"><i class="fas fa-download"></i> Get</button><button class="delete-btn flex-1 bg-white/5 hover:bg-red-500/20 text-red-300 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1"><i class="fas fa-trash-alt"></i> Delete</button></div></div></div>`; } document.getElementById('fileGrid').innerHTML = html; attachEvents(); }
+  function attachEvents() { document.querySelectorAll('.download-btn').forEach(btn => btn.addEventListener('click', async (e) => { const card = e.currentTarget.closest('.file-card'); const storagePath = card.getAttribute('data-storage-path'), fileName = card.getAttribute('data-file-name'); try { showToast("🌸 Downloading..."); await downloadFileFromSupabase(storagePath, fileName); showToast(`✅ Downloaded ${fileName}`); } catch(err) { showToast("Download failed", true); } })); document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => { const card = e.currentTarget.closest('.file-card'); const fileId = card.getAttribute('data-file-id'), fileName = card.getAttribute('data-file-name'), storagePath = card.getAttribute('data-storage-path'); if (!confirm(`Delete "${fileName}" permanently?`)) return; try { await deleteFileFromSupabase(fileId, storagePath); showToast(`🗑️ Deleted ${fileName}`); await refreshAllData(); } catch(err) { showToast("Delete error", true); } })); }
+  function formatBytes(bytes) { if(bytes===0)return '0 B'; const k=1024; const i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+['B','KB','MB','GB'][i]; }
+  function escapeHtml(str) { if(!str)return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+  function showLoginModal() { document.getElementById('loginModal').style.display = 'flex'; document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = ''; document.getElementById('loginErrorMsg').classList.add('hidden'); }
+  function hideLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
+  function handleLogin() { const username = document.getElementById('loginUsername').value.trim(), password = document.getElementById('loginPassword').value.trim(); if (username === VALID_USERNAME && password === VALID_PASSWORD) { isAuthenticated = true; localStorage.setItem('vault_auth', 'true'); hideLoginModal(); updateUIForAuthState(); refreshAllData(); showToast("✅ Welcome back, Admin!"); } else { let errorMsg = "❌ Invalid credentials"; if (username !== VALID_USERNAME && password !== VALID_PASSWORD) errorMsg = "❌ Invalid username and password"; else if (username !== VALID_USERNAME) errorMsg = "❌ Invalid username"; else if (password !== VALID_PASSWORD) errorMsg = "❌ Invalid password"; document.getElementById('loginErrorText').innerText = errorMsg; document.getElementById('loginErrorMsg').classList.remove('hidden'); showToast(errorMsg, true); } }
+  function handleLogout() { isAuthenticated = false; localStorage.removeItem('vault_auth'); updateUIForAuthState(); allFilesMetadata = []; renderLockedGrid(); document.getElementById('storageUsedText').innerHTML = `0 MB`; document.getElementById('storageFillBar').style.width = '0%'; document.getElementById('fileCountBadge').innerHTML = `0`; document.getElementById('storagePercent').innerHTML = `0%`; showToast("🔒 Logged out successfully"); showLoginModal(); }
+  function updateUIForAuthState() { const uploadLabel = document.getElementById('uploadLabel'), refreshBtn = document.getElementById('refreshBtn'), filterBtns = document.querySelectorAll('.filter-btn'), logoutBtn = document.getElementById('logoutHeaderBtn'); if (isAuthenticated) { uploadLabel.classList.remove('opacity-50', 'pointer-events-none'); refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed'); refreshBtn.disabled = false; filterBtns.forEach(btn => { btn.classList.remove('opacity-60', 'cursor-not-allowed'); btn.disabled = false; }); logoutBtn.classList.remove('hidden'); document.getElementById('syncStatus').innerHTML = 'Connected'; document.getElementById('syncStatus').className = 'text-green-400 text-xs'; document.getElementById('filterLabel').innerHTML = 'All Memories'; document.getElementById('subtitleMsg').innerHTML = 'Your precious moments in the cloud'; } else { uploadLabel.classList.add('opacity-50', 'pointer-events-none'); refreshBtn.classList.add('opacity-50', 'cursor-not-allowed'); refreshBtn.disabled = true; filterBtns.forEach(btn => { btn.classList.add('opacity-60', 'cursor-not-allowed'); btn.disabled = true; }); logoutBtn.classList.add('hidden'); document.getElementById('syncStatus').innerHTML = 'Locked'; document.getElementById('syncStatus').className = 'text-yellow-400 text-xs'; document.getElementById('filterLabel').innerHTML = 'Authentication Required'; document.getElementById('subtitleMsg').innerHTML = 'Please login to access your cloud vault'; } }
+  function setupFilters() { const btns = document.querySelectorAll('.filter-btn'); btns.forEach(btn => btn.addEventListener('click', async () => { if (!isAuthenticated) { showToast("Please login first", true); showLoginModal(); return; } currentFilter = btn.getAttribute('data-filter'); btns.forEach(b=>b.classList.remove('active-filter')); btn.classList.add('active-filter'); document.getElementById('filterLabel').innerHTML = currentFilter === 'all' ? 'All Memories' : (currentFilter==='image' ? 'Image Gallery' : 'Video Library'); await renderGrid(); })); }
+  function startSakura() { const canvas = document.getElementById('sakuraCanvas'), ctx = canvas.getContext('2d'); let petals = [], width, height; function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; } window.addEventListener('resize', resize); resize(); class Petal { constructor() { this.x = Math.random() * width; this.y = Math.random() * height - height; this.size = 5 + Math.random() * 8; this.speedY = 0.3 + Math.random() * 1.2; this.speedX = -0.2 + Math.random() * 0.4; this.rotation = Math.random() * Math.PI * 2; } update() { this.y += this.speedY; this.x += this.speedX; this.rotation += 0.02; if (this.y > height + 30) { this.y = -30; this.x = Math.random() * width; } if (this.x > width + 30) this.x = -30; if (this.x < -30) this.x = width + 30; } draw() { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation); ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(this.size/2, -this.size/1.5, this.size, -this.size/4, 0, 0); ctx.bezierCurveTo(-this.size, -this.size/4, -this.size/2, -this.size/1.5, 0, 0); ctx.fillStyle = `rgba(255, 182, 193, 0.4)`; ctx.fill(); ctx.restore(); } } for (let i=0;i<40;i++) petals.push(new Petal()); function animate() { ctx.clearRect(0,0,width,height); petals.forEach(p=>{p.update(); p.draw();}); requestAnimationFrame(animate); } animate(); }
+  (async function() { supabaseClient = await initSupabaseClient(); const savedAuth = localStorage.getItem('vault_auth'); if (savedAuth === 'true') { isAuthenticated = true; updateUIForAuthState(); await refreshAllData(); } else { isAuthenticated = false; updateUIForAuthState(); renderLockedGrid(); } setupFilters(); document.getElementById('uploadInput').addEventListener('change', async (e) => { if(e.target.files.length && isAuthenticated) await uploadWithProgress(Array.from(e.target.files)); else if(!isAuthenticated) { showToast("Login required", true); showLoginModal(); } e.target.value=''; }); document.getElementById('refreshBtn').addEventListener('click', async () => { if(isAuthenticated) { await refreshAllData(); showToast("🔄 Synced"); } else { showToast("Login required", true); showLoginModal(); } }); document.getElementById('loginBtn').addEventListener('click', handleLogin); document.getElementById('logoutHeaderBtn').addEventListener('click', handleLogout); document.getElementById('loginModal').addEventListener('click', (e) => { if(e.target === document.getElementById('loginModal')) hideLoginModal(); }); document.getElementById('loginPassword').addEventListener('keypress', (e) => { if(e.key === 'Enter') handleLogin(); }); startSakura(); if (!isAuthenticated) showLoginModal(); })();
+</script>
+</body>
+</html>
