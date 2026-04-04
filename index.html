@@ -360,15 +360,10 @@
 <div id="toastMessage" class="toast"><i class="fas fa-sparkle mr-2"></i> <span id="toastText"></span></div>
 
 <script>
-  // SECURITY: Credentials should be stored in environment variables/backend, not client-side
-  // For demo purposes only - in production, use proper authentication (OAuth, JWT, etc.)
   const SUPABASE_URL = "https://ozhajurzoxxdypvgasdv.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96aGFqdXJ6b3h4ZHlwdmdhc2R2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDIxODksImV4cCI6MjA5MDcxODE4OX0.tO5Lap3Y0Dl3vbk7LswRywEah4lATN130gOJX5HkOt0";
   
-  // SECURITY FIX: Password hashing simulation (in production, use proper bcrypt/Argon2 on backend)
-  // For demo, we're using a simple hash - REAL implementation must use backend authentication
   const VALID_USERNAME = "admin";
-  // Password hash for "auth@123" - simple hash for demo (NOT for production)
   const PASSWORD_HASH = btoa("auth@123");
   
   let supabaseClient = null, currentFilter = 'all', allFilesMetadata = [], isAuthenticated = false;
@@ -376,39 +371,20 @@
   let loginAttempts = 0;
   let sessionTimeout = null;
   const MAX_BYTES = 1 * 1024 * 1024 * 1024, STORAGE_BUCKET = 'anime-files', TABLE_NAME = 'user_files';
-  const SESSION_DURATION = 30 * 60 * 1000; // 30 minutes session timeout
+  const SESSION_DURATION = 30 * 60 * 1000;
 
-  // SECURITY: Sanitize filename to prevent path traversal and XSS
-  function sanitizeFilename(filename) {
-    // Remove path traversal attempts
-    let safe = filename.replace(/\.\./g, '').replace(/[\\/]/g, '');
-    // Remove any non-printable characters
-    safe = safe.replace(/[^\x20-\x7E]/g, '');
-    // Limit length
-    if (safe.length > 255) safe = safe.substring(0, 255);
-    return safe || 'unnamed_file';
+  // 🔓 MODIFIED: Accepts ALL file types with NO restrictions (except basic path sanitization)
+  function isFileTypeAllowed(file) {
+    // Allow absolutely any file type - no MIME or extension restrictions
+    // Only basic filename sanitization remains for security
+    return true;
   }
 
-  // SECURITY: Validate file type against allowed MIME types (prevent malicious uploads)
-  const ALLOWED_MIME_TYPES = [
-    'image/', 'video/', 'audio/', 'application/pdf', 'application/msword',
-    'application/vnd.openxmlformats-officedocument', 'text/plain', 'application/json',
-    'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed'
-  ];
-  
-  function isFileTypeAllowed(file) {
-    // Block executable files for security
-    const dangerousExts = ['exe', 'bat', 'cmd', 'sh', 'js', 'vbs', 'ps1', 'jar', 'appimage', 'deb', 'rpm'];
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (dangerousExts.includes(ext)) return false;
-    
-    // Check MIME type against allowed patterns
-    for (const allowed of ALLOWED_MIME_TYPES) {
-      if (file.type.startsWith(allowed)) return true;
-    }
-    // Additional extension-based check for common safe files
-    const safeExts = ['txt', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mp3', 'wav', 'ogg', 'zip'];
-    return safeExts.includes(ext);
+  function sanitizeFilename(filename) {
+    let safe = filename.replace(/\.\./g, '').replace(/[\\/]/g, '');
+    safe = safe.replace(/[^\x20-\x7E]/g, '');
+    if (safe.length > 255) safe = safe.substring(0, 255);
+    return safe || 'unnamed_file';
   }
 
   function showToast(msg, isErr = false) {
@@ -423,15 +399,11 @@
   function showProgressModal() { document.getElementById('progressModal').classList.add('active'); }
   function hideProgressModal() { document.getElementById('progressModal').classList.remove('active'); }
   
-  // SECURITY FIX: Session management with timeout
   function resetSessionTimer() {
     if (sessionTimeout) clearTimeout(sessionTimeout);
     if (isAuthenticated) {
       sessionTimeout = setTimeout(() => {
-        if (isAuthenticated) {
-          handleLogout();
-          showToast("Session expired. Please login again.", true);
-        }
+        if (isAuthenticated) { handleLogout(); showToast("Session expired. Please login again.", true); }
       }, SESSION_DURATION);
     }
   }
@@ -439,14 +411,7 @@
   async function uploadWithProgress(files) {
     if (!supabaseClient || !isAuthenticated) { showToast("❌ Please login first!", true); showLoginModal(); return false; }
     
-    // SECURITY: Validate all files before upload
-    for (const file of files) {
-      if (!isFileTypeAllowed(file)) {
-        showToast(`❌ File type not allowed: ${escapeHtml(file.name)}`, true);
-        return false;
-      }
-    }
-    
+    // Allow any file - removed type validation
     let currentUsed = await getTotalUsedBytes();
     let totalIncoming = Array.from(files).reduce((s,f)=>s+f.size,0);
     if (currentUsed + totalIncoming > MAX_BYTES) { showToast("❌ Exceeds 1GB limit", true); return false; }
@@ -486,29 +451,23 @@
           }
         }, 200);
         
-        // SECURITY: Sanitize file extension
         let fileExt = file.name.split('.').pop() || 'bin';
         fileExt = fileExt.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
         const safeFilename = sanitizeFilename(file.name);
         const storagePath = `${fileId}.${fileExt}`;
         
-        const { error: uploadError } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(storagePath, file, { 
-          contentType: file.type, 
-          upsert: false,
-          cacheControl: '3600'
-        });
+        const { error: uploadError } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(storagePath, file, { contentType: file.type || 'application/octet-stream', upsert: false, cacheControl: '3600' });
         if (uploadError) throw uploadError;
         
         clearInterval(progressInterval);
         if (progressFill) progressFill.style.width = `100%`;
         if (percentSpan) percentSpan.innerText = `100%`;
         
-        // SECURITY: Use session-based user ID instead of localStorage
         const deviceId = sessionStorage.getItem('session_user_id') || crypto.randomUUID();
         sessionStorage.setItem('session_user_id', deviceId);
         
         const { error: insertError } = await supabaseClient.from(TABLE_NAME).insert({
-          id: fileId, name: safeFilename, size: file.size, type: file.type, 
+          id: fileId, name: safeFilename, size: file.size, type: file.type || 'application/octet-stream', 
           storage_path: storagePath, uploaded_at: Date.now(), user_id: deviceId
         });
         if (insertError) { await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]).catch(e=>null); throw insertError; }
@@ -552,7 +511,7 @@
     if (mime.startsWith('image/') || ['jpg','jpeg','png','gif','webp','svg','bmp','ico'].includes(ext)) return 'image';
     if (mime.startsWith('video/') || ['mp4','webm','mov','avi','mkv','flv','wmv'].includes(ext)) return 'video';
     if (mime.startsWith('audio/') || ['mp3','wav','ogg','flac','aac','m4a'].includes(ext)) return 'audio';
-    if (mime.startsWith('application/pdf') || mime.includes('word') || mime.includes('document') || mime.includes('text') || ['pdf','doc','docx','txt','rtf','odt','xls','xlsx','ppt','pptx','csv'].includes(ext)) return 'document';
+    if (mime.includes('pdf') || mime.includes('word') || mime.includes('document') || mime.includes('text') || ['pdf','doc','docx','txt','rtf','odt','xls','xlsx','ppt','pptx','csv'].includes(ext)) return 'document';
     return 'other';
   }
   
@@ -654,8 +613,6 @@
       if (m === '<') return '&lt;';
       if (m === '>') return '&gt;';
       return m;
-    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-      return c;
     });
   }
   
@@ -669,13 +626,11 @@
   
   function hideLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
   
-  // SECURITY FIX: Rate limiting for login attempts
   function handleLogin() { 
     const username = document.getElementById('loginUsername').value.trim(); 
     const password = document.getElementById('loginPassword').value;
     const passwordHash = btoa(password);
     
-    // Rate limiting
     if (loginAttempts >= 5) {
       const warning = document.getElementById('loginWarning');
       warning.textContent = "Too many failed attempts. Please wait 30 seconds.";
@@ -806,7 +761,6 @@
     const savedAuth = sessionStorage.getItem('vault_auth');
     const authTime = sessionStorage.getItem('auth_time');
     
-    // Check session expiry
     if (savedAuth === 'true' && authTime) {
       const elapsed = Date.now() - parseInt(authTime);
       if (elapsed < SESSION_DURATION) {
