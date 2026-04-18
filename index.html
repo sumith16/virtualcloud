@@ -259,7 +259,16 @@
     }
     .clear-search { cursor: pointer; transition: all 0.2s; }
     .clear-search:hover { color: #ff69b4; transform: scale(1.1); }
-    .login-attempts-warning { font-size: 11px; color: #ffaa44; margin-top: 8px; text-align: center; }
+    .role-badge {
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+    .role-admin { background: linear-gradient(135deg, #ff69b4, #a855f7); color: white; }
+    .role-viewer { background: linear-gradient(135deg, #06b6d4, #3b82f6); color: white; }
   </style>
 </head>
 <body>
@@ -299,11 +308,10 @@
     </div>
     <div class="space-y-4">
       <div><label class="block text-gray-300 text-sm mb-2"><i class="fas fa-user mr-2"></i>Username</label>
-      <input type="text" id="loginUsername" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 transition" placeholder="admin" autocomplete="off"></div>
+      <input type="text" id="loginUsername" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 transition" placeholder="admin or viewer" autocomplete="off"></div>
       <div><label class="block text-gray-300 text-sm mb-2"><i class="fas fa-key mr-2"></i>Password</label>
       <input type="password" id="loginPassword" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 transition" placeholder="••••••" autocomplete="off"></div>
       <button id="loginBtn" class="w-full py-3 rounded-xl btn-primary text-white font-semibold flex items-center justify-center gap-2 transition-all mt-4"><i class="fas fa-arrow-right-to-bracket"></i> Authenticate</button>
-      <div id="loginWarning" class="login-attempts-warning hidden"></div>
     </div>
   </div>
 </div>
@@ -329,7 +337,7 @@
           <div class="bg-white/5 rounded-xl p-3 text-center"><i class="fas fa-database text-pink-400 text-xl mb-1"></i><div class="stat-number text-xl" id="fileCountBadge">0</div><div class="text-xs text-gray-400">Total Files</div></div>
           <div class="bg-white/5 rounded-xl p-3 text-center"><i class="fas fa-chart-line text-purple-400 text-xl mb-1"></i><div class="stat-number text-xl" id="storageUsedText">0 MB</div><div class="text-xs text-gray-400">Used Space</div></div>
         </div>
-        <div class="mb-6"><div class="flex justify-between text-sm text-gray-300 mb-2"><span><i class="fas fa-hdd"></i> Storage Quota</span><span id="storagePercent">0%</span></div><div class="storage-bar"><div id="storageFillBar" class="storage-fill"></div></div><div class="text-xs text-gray-500 mt-2 text-center">of 1 GB · <span id="syncStatus" class="text-yellow-400">Locked</span></div></div>
+        <div class="mb-6"><div class="flex justify-between text-sm text-gray-300 mb-2"><span><i class="fas fa-hdd"></i> Storage Quota</span><span id="storagePercent">0%</span></div><div class="storage-bar"><div id="storageFillBar" class="storage-fill"></div></div><div class="text-xs text-gray-500 mt-2 text-center">of 1 GB · <span id="syncStatus" class="text-yellow-400">Locked</span> · <span id="roleBadge" class="role-badge role-viewer hidden"></span></div></div>
         <div><h3 class="text-gray-300 font-semibold text-sm mb-3 flex items-center gap-2"><i class="fas fa-sliders-h text-pink-400"></i> Filters</h3>
           <div class="space-y-1.5"><button data-filter="all" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-grid-2 w-5"></i> All Files</button>
           <button data-filter="image" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-image w-5 text-pink-400"></i> Images</button>
@@ -363,22 +371,21 @@
   const SUPABASE_URL = "https://ozhajurzoxxdypvgasdv.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96aGFqdXJ6b3h4ZHlwdmdhc2R2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDIxODksImV4cCI6MjA5MDcxODE4OX0.tO5Lap3Y0Dl3vbk7LswRywEah4lATN130gOJX5HkOt0";
   
-  const VALID_USERNAME = "admin";
-  const PASSWORD_HASH = btoa("auth@123");
+  // User definitions: admin (full), viewer (only upload + get, no delete)
+  const USERS = {
+    admin: { passwordHash: btoa("auth@123"), role: "admin", canDelete: true, canUpload: true, canDownload: true },
+    viewer: { passwordHash: btoa("viewonly"), role: "viewer", canDelete: false, canUpload: true, canDownload: true }
+  };
   
   let supabaseClient = null, currentFilter = 'all', allFilesMetadata = [], isAuthenticated = false;
+  let currentUserRole = null;
   let currentSearchQuery = '';
   let loginAttempts = 0;
   let sessionTimeout = null;
   const MAX_BYTES = 1 * 1024 * 1024 * 1024, STORAGE_BUCKET = 'anime-files', TABLE_NAME = 'user_files';
   const SESSION_DURATION = 30 * 60 * 1000;
 
-  // 🔓 MODIFIED: Accepts ALL file types with NO restrictions (except basic path sanitization)
-  function isFileTypeAllowed(file) {
-    // Allow absolutely any file type - no MIME or extension restrictions
-    // Only basic filename sanitization remains for security
-    return true;
-  }
+  function isFileTypeAllowed(file) { return true; }
 
   function sanitizeFilename(filename) {
     let safe = filename.replace(/\.\./g, '').replace(/[\\/]/g, '');
@@ -410,8 +417,8 @@
   
   async function uploadWithProgress(files) {
     if (!supabaseClient || !isAuthenticated) { showToast("❌ Please login first!", true); showLoginModal(); return false; }
+    if (currentUserRole !== 'admin' && currentUserRole !== 'viewer') { showToast("Permission denied: Upload not allowed", true); return false; }
     
-    // Allow any file - removed type validation
     let currentUsed = await getTotalUsedBytes();
     let totalIncoming = Array.from(files).reduce((s,f)=>s+f.size,0);
     if (currentUsed + totalIncoming > MAX_BYTES) { showToast("❌ Exceeds 1GB limit", true); return false; }
@@ -502,7 +509,13 @@
     return data.map(f => ({ id: f.id, name: f.name, size: Number(f.size), type: f.type, uploadedAt: f.uploaded_at, storagePath: f.storage_path })); 
   }
   async function getTotalUsedBytes() { if (!supabaseClient || !isAuthenticated) return 0; const { data, error } = await supabaseClient.from(TABLE_NAME).select('size'); if (error) return 0; return data.reduce((sum, f) => sum + (f.size || 0), 0); }
-  async function deleteFileFromSupabase(fileId, storagePath) { if (!supabaseClient || !isAuthenticated) throw new Error("Auth required"); if (storagePath) await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]); const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', fileId); if (error) throw error; }
+  async function deleteFileFromSupabase(fileId, storagePath) { 
+    if (!supabaseClient || !isAuthenticated) throw new Error("Auth required");
+    if (currentUserRole !== 'admin') throw new Error("Permission denied: only admin can delete files");
+    if (storagePath) await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]); 
+    const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', fileId); 
+    if (error) throw error; 
+  }
   async function downloadFileFromSupabase(storagePath, originalName) { if (!supabaseClient || !isAuthenticated) throw new Error("Auth required"); const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath); if (error) throw error; const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = originalName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
   function getPublicUrl(storagePath) { if (!supabaseClient || !storagePath || !isAuthenticated) return null; const { data } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath); return data.publicUrl; }
   
@@ -529,9 +542,16 @@
   }
   
   async function refreshAllData() {
-    if (!supabaseClient || !isAuthenticated) { renderLockedGrid(); document.getElementById('storageUsedText').innerHTML = `0 MB`; document.getElementById('storageFillBar').style.width = '0%'; document.getElementById('fileCountBadge').innerHTML = `0`; document.getElementById('storagePercent').innerHTML = `0%`; return; }
+    if (!supabaseClient || !isAuthenticated) { renderLockedGrid(); updateStorageUI(); return; }
     const meta = await fetchAllMetadataFromSupabase(); allFilesMetadata = meta; await updateStorageMeterUI(); await renderGrid();
     resetSessionTimer();
+  }
+  
+  function updateStorageUI() { 
+    document.getElementById('storageUsedText').innerHTML = `0 MB`; 
+    document.getElementById('storageFillBar').style.width = '0%'; 
+    document.getElementById('fileCountBadge').innerHTML = `0`; 
+    document.getElementById('storagePercent').innerHTML = `0%`; 
   }
   
   function renderLockedGrid() { 
@@ -567,6 +587,7 @@
       return; 
     } 
     let html = ''; 
+    const canDelete = (currentUserRole === 'admin');
     for (const file of filtered) { 
       const category = getFileCategory(file.type, file.name);
       const ext = file.name.split('.').pop().toLowerCase();
@@ -582,7 +603,7 @@
         mediaHtml = `<div class="h-40 w-full bg-gradient-to-br from-gray-800/50 to-purple-900/30 flex flex-col items-center justify-center rounded-t-xl gap-2"><i class="fas ${iconClass} text-5xl text-pink-400/70"></i><span class="text-xs text-gray-400 bg-black/40 px-2 py-1 rounded-full">.${escapeHtml(ext)}</span></div>`;
       }
       
-      html += `<div class="file-card group" data-file-id="${escapeHtml(file.id)}" data-storage-path="${escapeHtml(file.storagePath || '')}" data-file-name="${escapeHtml(file.name)}"><div>${mediaHtml}</div><div class="p-3"><div class="flex justify-between items-start mb-1"><p class="font-semibold text-sm text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(fileNameShort)}</p><span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-pink-300">${category === 'image' ? '🖼️' : (category === 'video' ? '🎬' : (category === 'audio' ? '🎵' : (category === 'document' ? '📄' : '📁')))}</span></div><div class="text-xs text-gray-400 flex justify-between"><span>${sizeFormatted}</span><span><i class="far fa-clock"></i> ${new Date(file.uploadedAt).toLocaleDateString()}</span></div><div class="flex gap-2 mt-3"><button class="download-btn flex-1 bg-white/5 hover:bg-cyan-500/20 text-cyan-300 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1"><i class="fas fa-download"></i> Get</button><button class="delete-btn flex-1 bg-white/5 hover:bg-red-500/20 text-red-300 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1"><i class="fas fa-trash-alt"></i> Delete</button></div></div></div>`; 
+      html += `<div class="file-card group" data-file-id="${escapeHtml(file.id)}" data-storage-path="${escapeHtml(file.storagePath || '')}" data-file-name="${escapeHtml(file.name)}"><div>${mediaHtml}</div><div class="p-3"><div class="flex justify-between items-start mb-1"><p class="font-semibold text-sm text-white truncate" title="${escapeHtml(file.name)}">${escapeHtml(fileNameShort)}</p><span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-pink-300">${category === 'image' ? '🖼️' : (category === 'video' ? '🎬' : (category === 'audio' ? '🎵' : (category === 'document' ? '📄' : '📁')))}</span></div><div class="text-xs text-gray-400 flex justify-between"><span>${sizeFormatted}</span><span><i class="far fa-clock"></i> ${new Date(file.uploadedAt).toLocaleDateString()}</span></div><div class="flex gap-2 mt-3"><button class="download-btn flex-1 bg-white/5 hover:bg-cyan-500/20 text-cyan-300 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1"><i class="fas fa-download"></i> Get</button>` + (canDelete ? `<button class="delete-btn flex-1 bg-white/5 hover:bg-red-500/20 text-red-300 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1"><i class="fas fa-trash-alt"></i> Delete</button>` : `<button class="flex-1 bg-white/5 text-gray-500 text-xs py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-not-allowed" disabled><i class="fas fa-ban"></i> No Delete</button>`) + `</div></div></div>`; 
     } 
     document.getElementById('fileGrid').innerHTML = html; 
     attachEvents(); 
@@ -595,69 +616,43 @@
       try { showToast("🌸 Downloading..."); await downloadFileFromSupabase(storagePath, fileName); showToast(`✅ Downloaded ${fileName}`); resetSessionTimer();
       } catch(err) { showToast("Download failed", true); } 
     })); 
-    document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => { 
-      const card = e.currentTarget.closest('.file-card'); 
-      const fileId = card.getAttribute('data-file-id'), fileName = card.getAttribute('data-file-name'), storagePath = card.getAttribute('data-storage-path'); 
-      if (!confirm(`Delete "${fileName}" permanently?`)) return; 
-      try { await deleteFileFromSupabase(fileId, storagePath); showToast(`🗑️ Deleted ${fileName}`); await refreshAllData(); resetSessionTimer();
-      } catch(err) { showToast("Delete error", true); } 
-    })); 
+    if (currentUserRole === 'admin') {
+      document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => { 
+        const card = e.currentTarget.closest('.file-card'); 
+        const fileId = card.getAttribute('data-file-id'), fileName = card.getAttribute('data-file-name'), storagePath = card.getAttribute('data-storage-path'); 
+        if (!confirm(`Delete "${fileName}" permanently?`)) return; 
+        try { await deleteFileFromSupabase(fileId, storagePath); showToast(`🗑️ Deleted ${fileName}`); await refreshAllData(); resetSessionTimer();
+        } catch(err) { showToast(err.message || "Delete error", true); } 
+      }));
+    }
   }
   
   function formatBytes(bytes) { if(bytes===0)return '0 B'; const k=1024; const i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+['B','KB','MB','GB'][i]; }
   
-  function escapeHtml(str) { 
-    if(!str) return ''; 
-    return str.replace(/[&<>]/g, m => {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
+  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
   
-  function showLoginModal() { 
-    document.getElementById('loginModal').style.display = 'flex'; 
-    document.getElementById('loginUsername').value = ''; 
-    document.getElementById('loginPassword').value = ''; 
-    document.getElementById('loginErrorMsg').classList.add('hidden'); 
-    document.getElementById('loginWarning').classList.add('hidden');
-  }
-  
+  function showLoginModal() { document.getElementById('loginModal').style.display = 'flex'; document.getElementById('loginUsername').value = ''; document.getElementById('loginPassword').value = ''; document.getElementById('loginErrorMsg').classList.add('hidden'); }
   function hideLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
   
   function handleLogin() { 
     const username = document.getElementById('loginUsername').value.trim(); 
     const password = document.getElementById('loginPassword').value;
     const passwordHash = btoa(password);
+    const user = USERS[username];
     
-    if (loginAttempts >= 5) {
-      const warning = document.getElementById('loginWarning');
-      warning.textContent = "Too many failed attempts. Please wait 30 seconds.";
-      warning.classList.remove('hidden');
-      document.getElementById('loginBtn').disabled = true;
-      setTimeout(() => {
-        loginAttempts = 0;
-        document.getElementById('loginBtn').disabled = false;
-        warning.classList.add('hidden');
-      }, 30000);
-      return;
-    }
-    
-    if (username === VALID_USERNAME && passwordHash === PASSWORD_HASH) { 
+    if (user && user.passwordHash === passwordHash) { 
       isAuthenticated = true; 
-      loginAttempts = 0;
+      currentUserRole = user.role;
       sessionStorage.setItem('vault_auth', 'true');
       sessionStorage.setItem('auth_time', Date.now().toString());
+      sessionStorage.setItem('user_role', currentUserRole);
       hideLoginModal(); 
       updateUIForAuthState(); 
       refreshAllData(); 
       resetSessionTimer();
-      showToast("✅ Welcome back, Admin!"); 
+      showToast(`✅ Welcome, ${username} (${currentUserRole === 'admin' ? 'Administrator' : 'Viewer'})!`);
     } else { 
-      loginAttempts++;
-      let remaining = 5 - loginAttempts;
-      let errorMsg = `❌ Invalid credentials. ${remaining} attempts remaining.`;
+      let errorMsg = `❌ Invalid credentials.`;
       document.getElementById('loginErrorText').innerText = errorMsg; 
       document.getElementById('loginErrorMsg').classList.remove('hidden'); 
       showToast(errorMsg, true); 
@@ -666,23 +661,23 @@
   
   function handleLogout() { 
     isAuthenticated = false; 
+    currentUserRole = null;
     if (sessionTimeout) clearTimeout(sessionTimeout);
     sessionStorage.removeItem('vault_auth'); 
     sessionStorage.removeItem('session_user_id');
     sessionStorage.removeItem('auth_time');
+    sessionStorage.removeItem('user_role');
     updateUIForAuthState(); 
     allFilesMetadata = []; 
     renderLockedGrid(); 
-    document.getElementById('storageUsedText').innerHTML = `0 MB`; 
-    document.getElementById('storageFillBar').style.width = '0%'; 
-    document.getElementById('fileCountBadge').innerHTML = `0`; 
-    document.getElementById('storagePercent').innerHTML = `0%`; 
+    updateStorageUI();
     showToast("🔒 Logged out successfully"); 
     showLoginModal(); 
   }
   
   function updateUIForAuthState() { 
     const uploadLabel = document.getElementById('uploadLabel'), refreshBtn = document.getElementById('refreshBtn'), filterBtns = document.querySelectorAll('.filter-btn'), logoutBtn = document.getElementById('logoutHeaderBtn'); 
+    const roleBadgeSpan = document.getElementById('roleBadge');
     if (isAuthenticated) { 
       uploadLabel.classList.remove('opacity-50', 'pointer-events-none'); 
       refreshBtn.classList.remove('opacity-50', 'cursor-not-allowed'); 
@@ -690,9 +685,12 @@
       filterBtns.forEach(btn => { btn.classList.remove('opacity-60', 'cursor-not-allowed'); btn.disabled = false; }); 
       logoutBtn.classList.remove('hidden'); 
       document.getElementById('syncStatus').innerHTML = 'Connected'; 
-      document.getElementById('syncStatus').className = 'text-green-400 text-xs'; 
+      document.getElementById('syncStatus').className = 'text-green-400 text-xs';
+      roleBadgeSpan.classList.remove('hidden');
+      roleBadgeSpan.textContent = currentUserRole === 'admin' ? '👑 ADMIN' : '👁️ VIEWER';
+      roleBadgeSpan.className = `role-badge ${currentUserRole === 'admin' ? 'role-admin' : 'role-viewer'}`;
       document.getElementById('filterLabel').innerHTML = 'All Memories'; 
-      document.getElementById('subtitleMsg').innerHTML = 'Your precious moments in the cloud'; 
+      document.getElementById('subtitleMsg').innerHTML = currentUserRole === 'admin' ? 'Full access · Upload, Download & Delete' : 'Upload & Download only · No delete permission';
     } else { 
       uploadLabel.classList.add('opacity-50', 'pointer-events-none'); 
       refreshBtn.classList.add('opacity-50', 'cursor-not-allowed'); 
@@ -700,7 +698,8 @@
       filterBtns.forEach(btn => { btn.classList.add('opacity-60', 'cursor-not-allowed'); btn.disabled = true; }); 
       logoutBtn.classList.add('hidden'); 
       document.getElementById('syncStatus').innerHTML = 'Locked'; 
-      document.getElementById('syncStatus').className = 'text-yellow-400 text-xs'; 
+      document.getElementById('syncStatus').className = 'text-yellow-400 text-xs';
+      roleBadgeSpan.classList.add('hidden');
       document.getElementById('filterLabel').innerHTML = 'Authentication Required'; 
       document.getElementById('subtitleMsg').innerHTML = 'Please login to access your cloud vault'; 
     } 
@@ -759,12 +758,14 @@
   (async function() { 
     supabaseClient = await initSupabaseClient(); 
     const savedAuth = sessionStorage.getItem('vault_auth');
+    const savedRole = sessionStorage.getItem('user_role');
     const authTime = sessionStorage.getItem('auth_time');
     
-    if (savedAuth === 'true' && authTime) {
+    if (savedAuth === 'true' && authTime && savedRole) {
       const elapsed = Date.now() - parseInt(authTime);
       if (elapsed < SESSION_DURATION) {
         isAuthenticated = true; 
+        currentUserRole = savedRole;
         updateUIForAuthState(); 
         await refreshAllData();
         resetSessionTimer();
@@ -782,12 +783,14 @@
     setupFilters(); 
     setupSearch(); 
     document.getElementById('uploadInput').addEventListener('change', async (e) => { 
-      if(e.target.files.length && isAuthenticated) {
+      if(e.target.files.length && isAuthenticated && (currentUserRole === 'admin' || currentUserRole === 'viewer')) {
         await uploadWithProgress(Array.from(e.target.files));
       } else if(!isAuthenticated) { 
         showToast("Login required", true); 
         showLoginModal(); 
-      } 
+      } else {
+        showToast("Permission denied", true);
+      }
       e.target.value=''; 
     }); 
     document.getElementById('refreshBtn').addEventListener('click', async () => { 
