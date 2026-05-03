@@ -3,534 +3,1389 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>VirtualStorage · Secure Cloud Vault</title>
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https://ozhajurzoxxdypvgasdv.supabase.co; connect-src 'self' https://ozhajurzoxxdypvgasdv.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self';">
-  <!-- TailwindCSS + Font Awesome + Google Fonts -->
+  <title>CloudVault · Liquid Glass Edition</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Supabase JS Library -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
   <style>
-    * {
-      font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-    }
+    * { font-family: 'Inter', system-ui, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+    
     body {
-      background: radial-gradient(circle at 10% 20%, rgba(10, 5, 30, 1) 0%, rgba(25, 10, 45, 1) 50%, rgba(15, 5, 35, 1) 100%);
+      background-color: #030712;
       min-height: 100vh;
-      margin: 0;
-      padding: 0;
-      position: relative;
       overflow-x: hidden;
+      position: relative;
+      color: #e5e7eb;
+    }
+
+    /* Deep Fluid Animated Background */
+    .fluid-bg {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: -1;
+      overflow: hidden;
+      background: #030712;
     }
     .orb {
-      position: fixed;
+      position: absolute;
       border-radius: 50%;
       filter: blur(80px);
-      opacity: 0.4;
+      opacity: 0.5;
+      animation: float 20s infinite ease-in-out alternate;
+    }
+    .orb-1 { width: 600px; height: 600px; background: #3b82f6; top: -200px; left: -100px; animation-delay: 0s; }
+    .orb-2 { width: 500px; height: 500px; background: #8b5cf6; bottom: -100px; right: -100px; animation-delay: -5s; }
+    .orb-3 { width: 700px; height: 700px; background: #06b6d4; top: 40%; left: 40%; animation-delay: -10s; opacity: 0.3; }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(100px, 150px) scale(1.2); }
+      100% { transform: translate(-50px, 50px) scale(0.9); }
+    }
+
+    /* Core Glassmorphism */
+    .glass-liquid {
+      background: rgba(17, 24, 39, 0.45);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 28px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+      transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+    
+    /* Interactive Mouse Spotlight Cards */
+    .card-liquid {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1), border-color 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    
+    /* The Spotlight Effect */
+    .card-liquid::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(255, 255, 255, 0.06), transparent 40%);
+      opacity: 0;
+      transition: opacity 0.3s;
       pointer-events: none;
       z-index: 0;
-      animation: float 20s infinite ease-in-out;
     }
-    .orb-1 { width: 500px; height: 500px; background: #ff69b4; top: -200px; left: -200px; }
-    .orb-2 { width: 600px; height: 600px; background: #8b5cf6; bottom: -250px; right: -200px; animation-delay: -5s; }
-    .orb-3 { width: 400px; height: 400px; background: #06b6d4; top: 50%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; opacity: 0.2; }
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(30px, -30px) scale(1.1); }
-      66% { transform: translate(-20px, 20px) scale(0.9); }
+    
+    .card-liquid:hover::before { opacity: 1; }
+    .card-liquid:hover { 
+      transform: translateY(-4px); 
+      border-color: rgba(96, 165, 250, 0.4); 
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(59, 130, 246, 0.1); 
+      background: rgba(255, 255, 255, 0.04);
     }
-    .glass-card {
-      background: rgba(20, 15, 40, 0.55);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 2rem;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(255, 255, 255, 0.05);
+    .card-liquid.selected { 
+      border-color: #3b82f6; 
+      background: rgba(59, 130, 246, 0.1); 
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.2); 
     }
-    .glass-card-sidebar {
-      background: rgba(15, 10, 35, 0.6);
-      backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 1.5rem;
+    
+    /* Liquid Content Z-Index Fix */
+    .card-content, .card-actions, .selection-checkbox-liquid {
+      position: relative;
+      z-index: 10;
     }
-    .file-card {
-      background: linear-gradient(135deg, rgba(30, 25, 55, 0.8) 0%, rgba(25, 20, 50, 0.9) 100%);
-      backdrop-filter: blur(8px);
-      border-radius: 1.2rem;
-      border: 1px solid rgba(255, 105, 180, 0.2);
+
+    /* Frosted Checkbox */
+    .selection-checkbox-liquid {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      appearance: none;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-    }
-    .file-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 105, 180, 0.1), transparent);
-      transition: left 0.5s;
-    }
-    .file-card:hover::before {
-      left: 100%;
-    }
-    .file-card:hover {
-      transform: translateY(-6px) scale(1.02);
-      border-color: rgba(255, 105, 180, 0.5);
-      box-shadow: 0 20px 30px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 105, 180, 0.3);
-    }
-    ::-webkit-scrollbar { width: 5px; }
-    ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #ff69b4, #8b5cf6); border-radius: 10px; }
-    .storage-bar {
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      overflow: hidden;
-    }
-    .storage-fill {
-      background: linear-gradient(90deg, #ff69b4, #a855f7, #06b6d4);
-      width: 0%;
-      height: 8px;
-      border-radius: 20px;
-      transition: width 0.4s ease;
-      position: relative;
-    }
-    .storage-fill::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 20px;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
-      border-radius: 20px;
-    }
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: rgba(0, 0, 0, 0.9);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 105, 180, 0.4);
-      color: white;
-      padding: 14px 28px;
-      border-radius: 60px;
-      font-weight: 500;
-      z-index: 999;
-      opacity: 0;
-      transition: all 0.3s ease;
-      pointer-events: none;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      letter-spacing: 0.3px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .toast.error { border-color: #ef4444; background: rgba(0, 0, 0, 0.95); }
-    .toast.success { border-color: #10b981; }
-    .active-filter {
-      background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(139, 92, 246, 0.2));
-      border-left: 3px solid #ff69b4;
-      color: white;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #ff69b4, #a855f7);
-      transition: all 0.2s ease;
-    }
-    .btn-primary:hover {
-      transform: scale(1.05);
-      box-shadow: 0 10px 20px -5px rgba(255, 105, 180, 0.4);
-    }
-    .stat-number {
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #ff69b4, #a855f7);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-    .sakura-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 1;
-    }
-    .content-layer { position: relative; z-index: 2; }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .file-card { animation: fadeInUp 0.4s ease backwards; }
-    
-    /* Drag & Drop Zone Styles */
-    .drop-zone {
-      transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-      border: 2px dashed rgba(255, 105, 180, 0.4);
-      background: rgba(255, 105, 180, 0.05);
-    }
-    .drop-zone-active {
-      border-color: #ff69b4;
-      background: rgba(255, 105, 180, 0.15);
-      transform: scale(1.02);
-      box-shadow: 0 0 0 4px rgba(255, 105, 180, 0.2);
-    }
-    .drag-overlay-glow {
-      background: radial-gradient(circle, rgba(255,105,180,0.2) 0%, rgba(139,92,246,0.1) 100%);
-    }
-    
-    .progress-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-      z-index: 1100;
       display: flex;
       align-items: center;
       justify-content: center;
-      visibility: hidden;
-      opacity: 0;
-      transition: all 0.3s ease;
+      backdrop-filter: blur(4px);
     }
-    .progress-overlay.active {
-      visibility: visible;
-      opacity: 1;
+    .selection-checkbox-liquid:hover { border-color: #60a5fa; transform: scale(1.1); }
+    .selection-checkbox-liquid:checked { background: #3b82f6; border-color: #3b82f6; }
+    .selection-checkbox-liquid:checked::after { 
+      content: ''; 
+      width: 8px; height: 8px; 
+      background: white; 
+      border-radius: 50%; 
+      animation: checkPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
     }
-    .progress-card {
-      background: rgba(25, 20, 50, 0.98);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 105, 180, 0.3);
-      border-radius: 1.5rem;
-      padding: 1.8rem;
-      width: 90%;
-      max-width: 480px;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-      animation: fadeInUp 0.4s ease;
+    @keyframes checkPop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    
+    /* Floating Sidebar */
+    .journal-sidebar {
+      position: fixed;
+      right: -420px;
+      top: 20px;
+      width: 400px;
+      height: calc(100vh - 40px);
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 28px;
+      z-index: 2500;
+      transition: right 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: -10px 10px 40px rgba(0, 0, 0, 0.5);
     }
-    .progress-bar-container {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 100px;
-      height: 8px;
-      overflow: hidden;
-      margin: 1.5rem 0;
-    }
-    .progress-bar-fill {
-      background: linear-gradient(90deg, #ff69b4, #a855f7, #06b6d4);
-      width: 0%;
-      height: 100%;
-      border-radius: 100px;
-      transition: width 0.2s ease;
-      position: relative;
-    }
-    .file-progress-item {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 0.75rem;
-      padding: 0.75rem;
-      margin-bottom: 0.75rem;
+    .journal-sidebar.open { right: 20px; }
+    .journal-header { padding: 24px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; justify-content: space-between; align-items: center; }
+    .journal-header h3 { color: #fff; font-size: 1.1rem; font-weight: 600; }
+    .journal-close { cursor: pointer; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border-radius: 50%; transition: all 0.2s; color: #9ca3af;}
+    .journal-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .journal-list { flex: 1; overflow-y: auto; padding: 20px; }
+    .journal-entry {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
       transition: all 0.2s;
+      border: 1px solid rgba(255,255,255,0.02);
     }
-    .file-progress-item.completed { border-left: 3px solid #10b981; opacity: 0.8; }
-    .file-progress-item.failed { border-left: 3px solid #ef4444; }
+    .journal-entry:hover { background: rgba(255, 255, 255, 0.06); transform: translateX(-4px); border-color: rgba(255,255,255,0.05); }
+    .journal-icon { width: 36px; height: 36px; background: rgba(59, 130, 246, 0.1); display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #60a5fa;}
+    .journal-time { font-size: 11px; color: #6b7280; margin-top: 4px; }
+    
+    /* Liquid Buttons */
+    .btn-liquid {
+      background: linear-gradient(135deg, #2563eb, #8b5cf6);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 100px;
+      padding: 12px 28px;
+      color: #ffffff;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3), inset 0 1px 1px rgba(255,255,255,0.3);
+    }
+    .btn-liquid:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4), inset 0 1px 1px rgba(255,255,255,0.4); filter: brightness(1.1); }
+    .btn-liquid:active { transform: translateY(1px); box-shadow: none; }
+    .btn-liquid:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; border-color: transparent; }
+    
+    /* Floating Action Bar */
+    .bulk-bar-liquid {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      padding: 12px 24px;
+      z-index: 1500;
+      display: none;
+      gap: 12px;
+      animation: slideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    
+    .toast-liquid {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: rgba(17, 24, 39, 0.9);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      padding: 14px 28px;
+      z-index: 4000;
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      pointer-events: none;
+      color: #fff;
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+    }
+    .toast-liquid.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast-liquid i { margin-right: 12px; font-size: 1.2em; }
+    
+    /* Deep Blur Overlays */
     .modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(12px);
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(3, 7, 18, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 2000;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: all 0.4s ease;
     }
-    .login-card {
-      background: rgba(20, 15, 40, 0.98);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 105, 180, 0.3);
-      border-radius: 2rem;
-      padding: 2rem;
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-liquid {
+      background: rgba(17, 24, 39, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 32px;
+      padding: 40px;
+      max-width: 500px;
       width: 90%;
-      max-width: 420px;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-      animation: fadeInUp 0.5s ease;
+      transform: scale(0.9) translateY(20px);
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
     }
-    .search-input {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      transition: all 0.3s ease;
+    .modal-overlay.active .modal-liquid { transform: scale(1) translateY(0); }
+    
+    /* Soft Inputs */
+    .input-liquid {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 16px 20px;
+      transition: all 0.3s;
+      color: #ffffff;
+      width: 100%;
     }
-    .search-input:focus {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: #ff69b4;
-      box-shadow: 0 0 0 2px rgba(255, 105, 180, 0.2);
+    .input-liquid:focus { outline: none; border-color: #60a5fa; background: rgba(255, 255, 255, 0.05); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+    
+    .breadcrumb-liquid {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 100px;
+      padding: 6px;
+      display: inline-flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
-    .clear-search { cursor: pointer; transition: all 0.2s; }
-    .clear-search:hover { color: #ff69b4; transform: scale(1.1); }
-    .role-badge {
-      background: rgba(255,255,255,0.1);
+    .breadcrumb-item-liquid {
+      padding: 8px 16px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #9ca3af;
+      transition: all 0.2s;
+    }
+    .breadcrumb-item-liquid:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+    
+    .folder-tree-item-liquid {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: all 0.2s;
+      color: #9ca3af;
+      font-size: 14px;
+    }
+    .folder-tree-item-liquid:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
+    .folder-tree-item-liquid.selected { background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-weight: 500; }
+    
+    /* Fluid Progress */
+    .progress-liquid { background: rgba(0, 0, 0, 0.3); border-radius: 100px; overflow: hidden; height: 6px; border: 1px solid rgba(255,255,255,0.05);}
+    .progress-fill-liquid { 
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4); 
+      height: 100%; 
+      transition: width 0.2s ease-out; 
+      border-radius: 100px;
+    }
+    
+    .skeleton-liquid {
+      background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.02) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-wave 2s infinite linear;
       border-radius: 20px;
-      padding: 2px 8px;
-      font-size: 10px;
-      font-weight: 600;
-      margin-left: 8px;
     }
-    .role-admin { background: linear-gradient(135deg, #ff69b4, #a855f7); color: white; }
-    .role-viewer { background: linear-gradient(135deg, #06b6d4, #3b82f6); color: white; }
+    @keyframes skeleton-wave { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+    
+    .toast-stack { position: fixed; bottom: 30px; right: 30px; z-index: 4000; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+    .file-thumbnail { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; margin: 0 auto; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+    .list-view .card-liquid { display: flex; align-items: center; padding: 12px 16px; margin-bottom: 12px; }
+    .list-view .card-content { display: flex; align-items: center; flex: 1; gap: 16px; }
+    .list-view .selection-checkbox-liquid { position: relative; top: auto; right: auto; margin-right: 16px; }
+    .hidden { display: none !important; }
+    
+    .role-badge { 
+      position: fixed; 
+      top: 24px; 
+      right: 24px; 
+      z-index: 100; 
+      background: rgba(17, 24, 39, 0.6); 
+      backdrop-filter: blur(12px); 
+      padding: 8px 20px; 
+      border-radius: 100px; 
+      font-size: 11px; 
+      font-weight: 600; 
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e5e7eb;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    
+    .drag-overlay-liquid {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(3, 7, 18, 0.4); backdrop-filter: blur(20px); 
+      z-index: 2000;
+      display: flex; align-items: center; justify-content: center; 
+      opacity: 0; visibility: hidden; transition: all 0.4s ease; pointer-events: none; 
+      border: 2px dashed rgba(96, 165, 250, 0.5);
+    }
+    .drag-overlay-liquid.active { opacity: 1; visibility: visible; pointer-events: auto; background: rgba(3, 7, 18, 0.6); }
+    
+    .lightbox-liquid {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      z-index: 3000;
+      display: flex; align-items: center; justify-content: center; 
+      opacity: 0; visibility: hidden; transition: all 0.4s ease;
+    }
+    .lightbox-liquid.active { opacity: 1; visibility: visible; }
+    
+    .view-toggle-liquid { padding: 8px 16px; border-radius: 100px; cursor: pointer; color: #9ca3af; font-size: 13px; transition: all 0.3s; }
+    .view-toggle-liquid.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    
+    .action-btn-liquid {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      color: #9ca3af;
+      transition: all 0.2s;
+    }
+    .action-btn-liquid:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .action-btn-liquid.danger:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+    
+    .custom-video-player { position: relative; width: 100%; max-width: 900px; border-radius: 24px; overflow: hidden; background: #000; box-shadow: 0 30px 60px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); }
+    .custom-video-player video { width: 100%; display: block; }
+    .video-controls {
+      position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+      padding: 24px 20px 20px; display: flex; align-items: center; gap: 16px; opacity: 0; transition: opacity 0.3s;
+    }
+    .custom-video-player:hover .video-controls { opacity: 1; }
+    .play-pause-btn, .mute-btn { background: none; border: none; color: white; cursor: pointer; font-size: 18px; transition: transform 0.2s; }
+    .play-pause-btn:hover, .mute-btn:hover { transform: scale(1.1); }
+    .progress-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.2); border-radius: 100px; cursor: pointer; overflow: hidden; }
+    .progress-fill { height: 100%; background: #3b82f6; width: 0%; border-radius: 100px; }
+    .time-display { color: #d1d5db; font-size: 12px; font-weight: 500; }
   </style>
 </head>
 <body>
 
-<div class="orb orb-1"></div>
-<div class="orb orb-2"></div>
-<div class="orb orb-3"></div>
-<canvas id="sakuraCanvas" class="sakura-canvas"></canvas>
+<div class="fluid-bg">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
 
-<!-- Upload Progress Modal -->
-<div id="progressModal" class="progress-overlay">
-  <div class="progress-card">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fas fa-cloud-upload-alt text-pink-400"></i> Uploading to Cloud</h3>
-      <span id="overallPercent" class="text-sm text-pink-400 font-semibold">0%</span>
+<div id="dragOverlay" class="drag-overlay-liquid">
+  <div class="dropzone-content text-center">
+    <div class="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(59,130,246,0.3)]">
+      <i class="fas fa-cloud-upload-alt text-5xl text-blue-400 animate-bounce"></i>
     </div>
-    <div class="progress-bar-container"><div id="overallProgressBar" class="progress-bar-fill" style="width: 0%"></div></div>
-    <div id="fileProgressList" class="max-h-64 overflow-y-auto space-y-2 mb-4"></div>
-    <div id="uploadSummary" class="text-center text-sm text-gray-400 hidden"></div>
+    <h2 class="text-4xl font-semibold text-white mb-2 tracking-tight">Drop your files here</h2>
+    <p class="text-gray-400 text-lg">Seamlessly transfer to the vault</p>
   </div>
 </div>
 
-<!-- Login Modal -->
-<div id="loginModal" class="modal-overlay" style="display: none;">
-  <div class="login-card">
-    <div class="flex justify-center mb-4">
-      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg">
-        <i class="fas fa-lock text-3xl text-white"></i>
-      </div>
+<div id="lightbox" class="lightbox-liquid">
+  <div class="lightbox-content relative">
+    <div class="lightbox-close absolute -top-16 right-0 bg-white/10 border border-white/20 rounded-full w-12 h-12 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all backdrop-blur-md" onclick="closeLightbox()">
+      <i class="fas fa-times text-white text-xl"></i>
     </div>
-    <h2 class="text-2xl font-bold text-center text-white mb-2">Secure Access</h2>
-    <p class="text-center text-gray-400 text-sm mb-6">Enter credentials to access your vault</p>
-    <div id="loginErrorMsg" class="mb-4 hidden">
-      <div class="bg-red-500/20 border border-red-500/50 rounded-xl px-4 py-2 text-red-300 text-sm flex items-center gap-2">
-        <i class="fas fa-exclamation-triangle"></i> <span id="loginErrorText"></span>
-      </div>
-    </div>
-    <div class="space-y-4">
-      <div><label class="block text-gray-300 text-sm mb-2"><i class="fas fa-user mr-2"></i>Username</label>
-      <input type="text" id="loginUsername" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 transition" placeholder="Admin or viewer" autocomplete="off"></div>
-      <div><label class="block text-gray-300 text-sm mb-2"><i class="fas fa-key mr-2"></i>Password</label>
-      <input type="password" id="loginPassword" class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white focus:outline-none focus:border-pink-400 transition" placeholder="••••••" autocomplete="off"></div>
-      <button id="loginBtn" class="w-full py-3 rounded-xl btn-primary text-white font-semibold flex items-center justify-center gap-2 transition-all mt-4"><i class="fas fa-arrow-right-to-bracket"></i> Authenticate</button>
-    </div>
+    <div id="lightboxImage"></div>
   </div>
 </div>
 
-<div class="content-layer max-w-7xl mx-auto px-4 py-6">
-  <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-    <div class="text-center md:text-left">
-      <div class="flex items-center gap-3 mb-2">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg"><i class="fas fa-cloud-moon text-2xl text-white"></i></div>
-        <div><h1 class="text-3xl md:text-4xl font-extrabold tracking-tight"><span class="bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">VirtualStorage</span></h1>
-        <p class="text-gray-400 text-sm">✦ Secure Encrypted Cloud Storage ✦</p></div>
+<div id="bulkBar" class="bulk-bar-liquid">
+  <span id="selectedCount" class="text-white font-medium pl-2">0 selected</span>
+  <div class="w-px h-6 bg-white/20 mx-2"></div>
+  <button id="selectAllBtn" class="px-4 py-2 rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all text-sm"><i class="fas fa-check-double mr-2"></i>Select All</button>
+  <button id="bulkMoveBtn" class="px-4 py-2 rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition-all text-sm"><i class="fas fa-arrow-right mr-2"></i>Move</button>
+  <button id="bulkDeleteBtn" class="px-4 py-2 rounded-full hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all text-sm"><i class="fas fa-trash mr-2"></i>Delete</button>
+  <button id="bulkCancelBtn" class="w-9 h-9 rounded-full hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition-all ml-2"><i class="fas fa-times"></i></button>
+</div>
+
+<div id="journalSidebar" class="journal-sidebar">
+  <div class="journal-header">
+    <h3><i class="fas fa-bolt mr-2 text-blue-400"></i>Activity Stream</h3>
+    <div class="journal-close" onclick="closeJournal()"><i class="fas fa-times"></i></div>
+  </div>
+  <div id="journalList" class="journal-list"><div class="text-center text-gray-500 py-10 text-sm">No recent activity</div></div>
+</div>
+
+<div id="toastStack" class="toast-stack"></div>
+
+<div class="relative z-10 max-w-[1400px] mx-auto px-6 py-10">
+  <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+    <div class="flex items-center gap-5">
+      <div class="w-16 h-16 rounded-[20px] bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-[0_10px_30px_rgba(59,130,246,0.4)] border border-white/20 backdrop-blur-md">
+        <i class="fas fa-layer-group text-2xl text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-4xl font-semibold tracking-tight text-white mb-1">
+          Cloud<span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Vault</span>
+        </h1>
+        <p class="text-gray-400 text-sm font-medium">Liquid Glass Edition</p>
       </div>
     </div>
-    <div class="flex gap-3">
-      <button id="logoutHeaderBtn" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-red-500/20 transition-all flex items-center gap-2 text-sm hidden"><i class="fas fa-sign-out-alt"></i> Logout</button>
-      <label for="uploadInput" id="uploadLabel" class="cursor-pointer px-6 py-3 rounded-xl btn-primary text-white font-semibold flex items-center gap-2 shadow-lg transition-all hover:shadow-pink-500/25 opacity-50 pointer-events-none"><i class="fas fa-plus-circle"></i> Upload<input type="file" id="uploadInput" multiple class="hidden" accept="*/*"></label>
+    <div class="flex gap-4 flex-wrap justify-center items-center">
+      <button id="journalBtn" class="w-10 h-10 rounded-full border border-white/10 hover:bg-white/10 text-gray-300 flex items-center justify-center transition-all tooltip" title="Activity Stream"><i class="fas fa-history"></i></button>
+      
+      <div class="flex bg-black/20 border border-white/10 rounded-full p-1 backdrop-blur-md">
+        <button id="gridViewBtn" class="view-toggle-liquid active"><i class="fas fa-th mr-2"></i>Grid</button>
+        <button id="listViewBtn" class="view-toggle-liquid"><i class="fas fa-list mr-2"></i>List</button>
+      </div>
+      
+      <div id="selectAllHeader" class="hidden items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-full cursor-pointer hover:bg-white/10 transition-all">
+        <input type="checkbox" id="headerSelectAll" class="selection-checkbox-liquid" style="position:relative;top:auto;right:auto;">
+        <span class="text-gray-300 text-sm font-medium">Select All</span>
+      </div>
+      
+      <div class="w-px h-8 bg-white/10 mx-1"></div>
+      
+      <button id="createFolderHeaderBtn" class="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 text-sm font-medium transition-all"><i class="fas fa-folder-plus mr-2 text-blue-400"></i>New Folder</button>
+      <label for="uploadInput" id="uploadLabel" class="cursor-pointer px-6 py-2.5 rounded-full btn-liquid opacity-50 pointer-events-none text-sm"><i class="fas fa-cloud-upload-alt mr-2"></i> Upload Files</label>
+      <input type="file" id="uploadInput" multiple class="hidden">
+      <label for="directoryInput" id="directoryLabel" class="cursor-pointer px-6 py-2.5 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all opacity-50 pointer-events-none text-sm shadow-lg"><i class="fas fa-folder-open mr-2 text-purple-400"></i> Upload Folder</label>
+      <input type="file" id="directoryInput" webkitdirectory directory multiple class="hidden">
+      <button id="logoutHeaderBtn" class="px-5 py-2.5 rounded-full border border-white/10 text-gray-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 text-sm font-medium transition-all hidden"><i class="fas fa-sign-out-alt mr-2"></i>Sign Out</button>
     </div>
   </div>
-  <div class="flex flex-col lg:flex-row gap-6">
-    <div class="lg:w-80 w-full">
-      <div class="glass-card-sidebar p-6 rounded-2xl sticky top-6">
-        <div class="grid grid-cols-2 gap-3 mb-6">
-          <div class="bg-white/5 rounded-xl p-3 text-center"><i class="fas fa-database text-pink-400 text-xl mb-1"></i><div class="stat-number text-xl" id="fileCountBadge">0</div><div class="text-xs text-gray-400">Total Files</div></div>
-          <div class="bg-white/5 rounded-xl p-3 text-center"><i class="fas fa-chart-line text-purple-400 text-xl mb-1"></i><div class="stat-number text-xl" id="storageUsedText">0 MB</div><div class="text-xs text-gray-400">Used Space</div></div>
+
+  <div class="flex flex-col lg:flex-row gap-8">
+    <div class="lg:w-[320px] w-full">
+      <div class="glass-liquid p-7 sticky top-8">
+        <div class="grid grid-cols-2 gap-4 mb-8">
+          <div class="bg-black/20 border border-white/5 rounded-2xl p-4 text-center">
+            <i class="fas fa-folder text-blue-400 text-2xl mb-3 block drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]"></i>
+            <div class="text-3xl font-semibold text-white mb-1" id="folderCount">0</div>
+            <div class="text-xs text-gray-400 font-medium">Folders</div>
+          </div>
+          <div class="bg-black/20 border border-white/5 rounded-2xl p-4 text-center">
+            <i class="fas fa-file-alt text-purple-400 text-2xl mb-3 block drop-shadow-[0_0_8px_rgba(167,139,250,0.5)]"></i>
+            <div class="text-3xl font-semibold text-white mb-1" id="fileCount">0</div>
+            <div class="text-xs text-gray-400 font-medium">Files</div>
+          </div>
         </div>
-        <div class="mb-6"><div class="flex justify-between text-sm text-gray-300 mb-2"><span><i class="fas fa-hdd"></i> Storage Quota</span><span id="storagePercent">0%</span></div><div class="storage-bar"><div id="storageFillBar" class="storage-fill"></div></div><div class="text-xs text-gray-500 mt-2 text-center">of 1 GB · <span id="syncStatus" class="text-yellow-400">Locked</span> · <span id="roleBadge" class="role-badge role-viewer hidden"></span></div></div>
-        <div><h3 class="text-gray-300 font-semibold text-sm mb-3 flex items-center gap-2"><i class="fas fa-sliders-h text-pink-400"></i> Filters</h3>
-          <div class="space-y-1.5"><button data-filter="all" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-grid-2 w-5"></i> All Files</button>
-          <button data-filter="image" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-image w-5 text-pink-400"></i> Images</button>
-          <button data-filter="video" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-video w-5 text-purple-400"></i> Videos</button>
-          <button data-filter="document" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-file-alt w-5 text-cyan-400"></i> Documents</button>
-          <button data-filter="audio" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-music w-5 text-green-400"></i> Audio</button>
-          <button data-filter="other" class="filter-btn w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 text-gray-400 hover:bg-white/5 opacity-60 cursor-not-allowed" disabled><i class="fas fa-file w-5 text-gray-400"></i> Other</button></div>
+        
+        <div class="mb-8 p-5 bg-black/20 border border-white/5 rounded-2xl">
+          <div class="flex justify-between text-sm font-medium text-gray-300 mb-3"><span>Storage</span><span id="storagePercent" class="text-white">0%</span></div>
+          <div class="progress-liquid mb-3"><div id="storageFillBar" class="progress-fill-liquid" style="width:0%"></div></div>
+          <div class="flex justify-between text-xs text-gray-500">
+            <span id="storageUsedText">0 MB</span>
+            <span>1 GB Total</span>
+          </div>
         </div>
-        <div class="mt-6 pt-4 border-t border-white/10 text-center text-xs text-gray-500"><i class="fas fa-shield-alt"></i> Secure & Encrypted</div>
+        
+        <div class="mb-8">
+          <button id="showRootBtn" class="w-full flex items-center px-5 py-3.5 rounded-xl text-gray-300 font-medium hover:bg-white/5 transition-all border border-transparent hover:border-white/10"><i class="fas fa-home w-6 text-blue-400"></i>Home Directory</button>
+        </div>
+        
+        <div class="pt-5 border-t border-white/10"><div class="text-xs text-gray-500 font-medium text-center flex items-center justify-center gap-2" id="permissionText"><i class="fas fa-lock text-gray-600"></i> Authentication Required</div></div>
       </div>
     </div>
-    <div class="flex-1 glass-card p-6 rounded-2xl">
-      <div class="flex flex-col gap-4 mb-6">
-        <div class="flex justify-between items-center flex-wrap gap-3">
-          <div><h2 class="text-2xl font-bold text-white flex items-center gap-2"><i class="fas fa-folder-open text-pink-400"></i><span id="filterLabel">Authentication Required</span></h2><p class="text-gray-400 text-sm mt-1" id="subtitleMsg">Please login to access your cloud vault</p></div>
-          <button id="refreshBtn" class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all flex items-center gap-2 text-sm opacity-50 cursor-not-allowed" disabled><i class="fas fa-sync-alt"></i> Sync</button>
-        </div>
-        <div class="relative">
-          <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-          <input type="text" id="searchInput" placeholder="Search by filename..." class="search-input w-full pl-10 pr-10 py-2.5 rounded-xl text-white placeholder-gray-400 focus:outline-none transition text-sm">
-          <i id="clearSearchBtn" class="fas fa-times-circle absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 clear-search hidden"></i>
+
+    <div class="flex-1 glass-liquid p-8">
+      <div class="flex items-center gap-4 mb-8">
+        <div id="breadcrumbContainer" class="breadcrumb-liquid flex-1 overflow-x-auto whitespace-nowrap"></div>
+      </div>
+
+      <div class="relative mb-8 group">
+        <i class="fas fa-search absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors"></i>
+        <input type="text" id="searchInput" placeholder="Search your vault..." class="input-liquid pl-12 shadow-inner">
+        <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+           <span class="px-2 py-1 bg-black/40 border border-white/10 rounded text-[10px] text-gray-400 font-medium">⌘</span>
+           <span class="px-2 py-1 bg-black/40 border border-white/10 rounded text-[10px] text-gray-400 font-medium">F</span>
         </div>
       </div>
       
-      <!-- DRAG & DROP ZONE -->
-      <div id="dragDropZone" class="drop-zone rounded-2xl p-8 mb-6 text-center transition-all cursor-pointer">
-        <div class="flex flex-col items-center justify-center gap-3">
-          <i class="fas fa-cloud-upload-alt text-5xl text-pink-400/70 transition-all group-hover:scale-110"></i>
-          <p class="text-gray-300 font-medium">Drag & Drop files anywhere here</p>
-          <p class="text-gray-500 text-xs">or click to browse (supports all formats)</p>
-          <span class="text-[10px] text-pink-400/60 mt-1">✨ Instant secure upload ✨</span>
-        </div>
-      </div>
-      
-      <div id="fileGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-5"><div class="col-span-full text-center py-20"><div class="inline-block"><i class="fas fa-lock text-5xl text-pink-400/50 mb-4 block"></i><p class="text-gray-400">Login to view your stored files</p></div></div></div>
+      <div id="contentGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
     </div>
   </div>
 </div>
-<div id="toastMessage" class="toast"><i class="fas fa-sparkle mr-2"></i> <span id="toastText"></span></div>
+
+<!-- Modals -->
+<div id="loginModal" class="modal-overlay active">
+  <div class="modal-liquid">
+    <div class="text-center mb-10">
+      <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-6 shadow-[0_10px_30px_rgba(59,130,246,0.4)] border border-white/20">
+        <i class="fas fa-fingerprint text-3xl text-white"></i>
+      </div>
+      <h2 class="text-3xl font-semibold text-white mb-2">Welcome Back</h2>
+      <p class="text-gray-400 text-sm">Sign in to access your secure vault</p>
+    </div>
+    <div class="space-y-4 mb-8">
+      <input type="text" id="loginUsername" placeholder="Email or Username" class="input-liquid">
+      <input type="password" id="loginPassword" placeholder="Password" class="input-liquid">
+    </div>
+    <button id="loginBtn" class="w-full py-4 rounded-xl btn-liquid text-base shadow-[0_10px_20px_rgba(37,99,235,0.3)]">Authenticate <i class="fas fa-arrow-right ml-2 text-sm opacity-70"></i></button>
+  </div>
+</div>
+
+<div id="createFolderModal" class="modal-overlay">
+  <div class="modal-liquid p-8">
+    <div class="flex items-center gap-4 mb-8">
+      <div class="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+        <i class="fas fa-folder-plus text-xl text-blue-400"></i>
+      </div>
+      <h3 class="text-2xl font-semibold text-white">Create Folder</h3>
+    </div>
+    <input type="text" id="folderNameInput" placeholder="Name your new folder" class="input-liquid mb-8">
+    <div class="flex gap-4">
+      <button id="cancelFolderBtn" class="flex-1 px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 font-medium transition-all">Cancel</button>
+      <button id="createFolderBtn" class="flex-1 px-5 py-3.5 rounded-xl btn-liquid font-medium">Create</button>
+    </div>
+  </div>
+</div>
+
+<div id="uploadFolderModal" class="modal-overlay">
+  <div class="modal-liquid" style="max-width: 850px; width: 95%;">
+    <div class="flex items-center gap-4 mb-8">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg border border-white/20">
+        <i class="fas fa-cloud-upload-alt text-xl text-white"></i>
+      </div>
+      <div>
+        <h3 class="text-2xl font-semibold text-white">Upload Files</h3>
+        <p class="text-gray-400 text-sm mt-1">Review and organize before saving</p>
+      </div>
+    </div>
+    
+    <div class="flex flex-col md:flex-row gap-8">
+      <div class="flex-1 md:w-1/2 flex flex-col">
+        <div class="flex justify-between items-end mb-3">
+          <p class="text-gray-300 font-medium text-sm">Staged Files</p>
+          <span class="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-xs font-semibold" id="previewCount">0</span>
+        </div>
+        <div id="uploadPreviewGrid" class="flex-1 min-h-[250px] max-h-[350px] overflow-y-auto grid grid-cols-1 gap-3 pr-2 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner">
+            <!-- Inline File Previews -->
+        </div>
+      </div>
+      <div class="flex-1 md:w-1/2 flex flex-col">
+        <p class="text-gray-300 font-medium text-sm mb-3">Save Location</p>
+        <div id="uploadFolderTree" class="flex-1 min-h-[250px] max-h-[350px] overflow-y-auto bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner"></div>
+      </div>
+    </div>
+    
+    <div id="masterProgressWrapper" class="hidden mt-8 mb-2 p-5 rounded-2xl border border-blue-500/30 bg-blue-900/10">
+       <div class="flex justify-between text-sm font-medium text-white mb-3">
+          <span id="masterStatusText" class="flex items-center"><i class="fas fa-circle-notch fa-spin mr-3 text-blue-400"></i>Uploading to vault...</span>
+          <span id="masterProgressText" class="text-blue-400">0%</span>
+       </div>
+       <div class="progress-liquid"><div id="masterProgressFill" class="progress-fill-liquid" style="width:0%"></div></div>
+    </div>
+    
+    <div id="uploadModalActionBtns" class="flex gap-4 mt-8 pt-6 border-t border-white/10">
+       <button id="cancelFolderUploadBtn" class="px-8 py-3.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 font-medium transition-all">Cancel</button>
+       <button id="confirmFolderUploadBtn" class="flex-1 px-5 py-3.5 rounded-xl btn-liquid font-medium text-base shadow-[0_10px_20px_rgba(37,99,235,0.3)]">Begin Upload</button>
+    </div>
+  </div>
+</div>
+
+<div id="moveFileModal" class="modal-overlay">
+  <div class="modal-liquid">
+    <div class="flex items-center gap-4 mb-6">
+      <div class="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+        <i class="fas fa-exchange-alt text-xl text-purple-400"></i>
+      </div>
+      <h3 class="text-2xl font-semibold text-white">Move Item</h3>
+    </div>
+    <p id="movingItemName" class="text-gray-300 text-sm mb-6 px-4 py-3 bg-white/5 rounded-lg border border-white/10"></p>
+    <p class="text-gray-400 text-xs font-medium mb-3 pl-1">Select Destination:</p>
+    <div id="folderTree" class="max-h-80 overflow-y-auto mb-8 bg-black/20 p-4 rounded-2xl border border-white/5 shadow-inner"></div>
+    <div class="flex gap-4">
+      <button id="cancelMoveBtn" class="flex-1 px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all font-medium">Cancel</button>
+      <!-- Note: Move execution is handled by tree click directly for UX speed -->
+    </div>
+  </div>
+</div>
+
+<div id="deleteConfirmModal" class="modal-overlay">
+  <div class="modal-liquid border-t-[3px] border-t-red-500">
+    <div class="text-center mb-8 pt-4">
+      <div class="w-20 h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+        <i class="fas fa-trash-alt text-3xl text-red-500"></i>
+      </div>
+      <h3 class="text-2xl font-semibold text-white mb-3">Delete Item?</h3>
+      <p id="deleteConfirmMsg" class="text-gray-400 text-sm">Are you sure? This action cannot be reversed.</p>
+    </div>
+    <div class="flex gap-4">
+      <button id="cancelDeleteBtn" class="flex-1 px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 font-medium transition-all">Keep It</button>
+      <button id="confirmDeleteBtn" class="flex-1 px-5 py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium transition-all shadow-[0_10px_20px_rgba(239,68,68,0.3)] border border-red-400/50">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="roleBadge" class="role-badge hidden"></div>
 
 <script>
+  // Mouse Spotlight Effect Logic
+  document.addEventListener('mousemove', e => {
+    document.querySelectorAll('.card-liquid').forEach(card => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--mouse-x', `${x}px`);
+      card.style.setProperty('--mouse-y', `${y}px`);
+    });
+  });
+
   const SUPABASE_URL = "https://ozhajurzoxxdypvgasdv.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96aGFqdXJ6b3h4ZHlwdmdhc2R2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDIxODksImV4cCI6MjA5MDcxODE4OX0.tO5Lap3Y0Dl3vbk7LswRywEah4lATN130gOJX5HkOt0";
   
-  const USERS = {
-    Admin: { passwordHash: btoa("admin@1234"), role: "admin", canDelete: true, canUpload: true, canDownload: true },
-    viewer: { passwordHash: btoa("viewonly"), role: "viewer", canDelete: false, canUpload: true, canDownload: true }
+  const USERS = { Admin: { passwordHash: btoa("admin@1234"), role: "admin" }, viewer: { passwordHash: btoa("viewonly"), role: "viewer" } };
+  
+  let supabaseClient = null, isAuthenticated = false, currentUserRole = null;
+  let currentFolderId = null;
+  let folders = [], files = [];
+  let currentSearchQuery = '', currentView = 'grid'; 
+  let selectedItems = new Map();
+  let currentContextItem = null;
+  let pendingUploadFiles = null;
+  let selectedUploadFolder = null;
+  let isLoading = false;
+  let activeContextMenuClose = null;
+  let activityLog = [];
+  
+  let uploadCancelRequested = false;
+  let isUploadingFiles = false;
+  const MAX_BYTES = 1 * 1024 * 1024 * 1024, STORAGE_BUCKET = 'anime-files', TABLE_NAME = 'user_files', FOLDER_TABLE = 'folders';
+  const CONCURRENCY_LIMIT = 3;
+  
+  function generateUUID() { try { return crypto.randomUUID(); } catch(e) { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); } }
+  function isAdmin() { return currentUserRole === 'admin'; }
+  
+  function addActivityLog(action, itemName, details = '') {
+    const entry = { id: Date.now(), action, itemName, details, time: new Date().toLocaleString(), user: currentUserRole };
+    activityLog.unshift(entry);
+    if (activityLog.length > 100) activityLog.pop();
+    renderJournal();
+  }
+  
+  function renderJournal() {
+    const container = document.getElementById('journalList');
+    if (activityLog.length === 0) { container.innerHTML = '<div class="text-center text-gray-500 py-10 text-sm">No recent activity</div>'; return; }
+    container.innerHTML = activityLog.map(log => {
+      let icon = 'fa-info-circle'; let color = 'text-blue-400'; let bg = 'bg-blue-500/10';
+      if(log.action === 'upload') { icon = 'fa-cloud-upload-alt'; color = 'text-green-400'; bg = 'bg-green-500/10'; }
+      if(log.action === 'delete') { icon = 'fa-trash-alt'; color = 'text-red-400'; bg = 'bg-red-500/10'; }
+      if(log.action === 'move') { icon = 'fa-exchange-alt'; color = 'text-purple-400'; bg = 'bg-purple-500/10'; }
+      if(log.action === 'create') { icon = 'fa-folder-plus'; color = 'text-cyan-400'; bg = 'bg-cyan-500/10'; }
+      
+      return `
+      <div class="journal-entry flex items-center gap-4">
+        <div class="journal-icon ${bg}"><i class="fas ${icon} ${color}"></i></div>
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-gray-200 text-sm capitalize">${log.action}</div>
+          <div class="text-xs text-gray-400 truncate mt-0.5" title="${escapeHtml(log.itemName)}">${escapeHtml(log.itemName)} ${log.details}</div>
+        </div>
+        <div class="journal-time whitespace-nowrap">${log.time.split(',')[1].trim()}</div>
+      </div>
+    `}).join('');
+  }
+  
+  function openJournal() { document.getElementById('journalSidebar').classList.add('open'); }
+  function closeJournal() { document.getElementById('journalSidebar').classList.remove('open'); }
+  
+  function showToast(msg, isErr = false) {
+    const stack = document.getElementById('toastStack');
+    const toast = document.createElement('div');
+    const icon = isErr ? 'fa-exclamation-circle text-red-400' : 'fa-check-circle text-blue-400';
+    toast.className = `toast-liquid`;
+    toast.innerHTML = `<i class="fas ${icon}"></i> <span>${msg}</span>`;
+    stack.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 3500);
+    toast.onclick = () => toast.remove();
+  }
+  
+  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function formatBytes(bytes) { if(bytes===0)return '0 B'; const k=1024; const i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+['B','KB','MB','GB'][i]; }
+  function getFileCategory(mime, filename) {
+    const ext = filename.split('.').pop().toLowerCase();
+    if (mime && mime.startsWith('image/') || ['jpg','jpeg','png','gif','webp','svg', 'bmp', 'ico'].includes(ext)) return 'image';
+    if (mime && mime.startsWith('video/') || ['mp4','webm','mov','avi', 'mkv'].includes(ext)) return 'video';
+    if (mime && mime.startsWith('audio/') || ['mp3','wav','ogg','flac', 'm4a', 'aac'].includes(ext)) return 'audio';
+    if (mime && (mime.includes('pdf') || mime.includes('text')) || ['pdf','doc','docx','txt','xls','xlsx','ppt','pptx'].includes(ext)) return 'document';
+    return 'other';
+  }
+  
+  function initCustomVideoPlayer(videoElement, container) {
+    const controls = container.querySelector('.video-controls');
+    const playPauseBtn = controls.querySelector('.play-pause-btn');
+    const muteBtn = controls.querySelector('.mute-btn');
+    const progressBar = controls.querySelector('.progress-bar');
+    const progressFill = controls.querySelector('.progress-fill');
+    const timeDisplay = controls.querySelector('.time-display');
+    playPauseBtn.onclick = () => { if (videoElement.paused) videoElement.play(); else videoElement.pause(); };
+    videoElement.onplay = () => playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    videoElement.onpause = () => playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+    muteBtn.onclick = () => { videoElement.muted = !videoElement.muted; muteBtn.innerHTML = videoElement.muted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-up"></i>'; };
+    videoElement.ontimeupdate = () => { const percent = (videoElement.currentTime / videoElement.duration) * 100; progressFill.style.width = percent + '%'; timeDisplay.textContent = formatTime(videoElement.currentTime) + ' / ' + formatTime(videoElement.duration); };
+    progressBar.onclick = (e) => { const rect = progressBar.getBoundingClientRect(); const pos = (e.clientX - rect.left) / rect.width; videoElement.currentTime = pos * videoElement.duration; };
+    function formatTime(seconds) { const mins = Math.floor(seconds / 60); const secs = Math.floor(seconds % 60); return mins + ':' + (secs < 10 ? '0' : '') + secs; }
+  }
+  
+  async function showLightbox(file) {
+    const lightbox = document.getElementById('lightbox');
+    const container = document.getElementById('lightboxImage');
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${file.storage_path}`;
+    
+    const ext = file.name.split('.').pop().toLowerCase();
+    
+    container.innerHTML = '<div class="text-blue-400 flex flex-col items-center"><i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i><p class="text-sm font-medium text-gray-300">Rendering Data...</p></div>';
+    lightbox.classList.add('active');
+
+    const isImage = file.type.startsWith('image/') || ['jpg','jpeg','png','gif','webp','svg', 'bmp', 'ico'].includes(ext);
+    const isVideo = file.type.startsWith('video/') || ['mp4','webm','mov','avi', 'mkv'].includes(ext);
+    const isAudio = file.type.startsWith('audio/') || ['mp3','wav','ogg','flac', 'm4a', 'aac'].includes(ext);
+    const isPdf = file.type === 'application/pdf' || ext === 'pdf';
+    const isText = file.type.startsWith('text/') || file.type === 'application/json' || ['js','css','html','json','md','txt','csv','py','cpp','jsx','tsx', 'log', 'xml'].includes(ext);
+    const isOfficeDoc = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
+
+    if (isImage) {
+      container.innerHTML = `<img src="${publicUrl}" class="max-w-full max-h-[85vh] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10" alt="${escapeHtml(file.name)}">`;
+    } else if (isVideo) {
+      container.innerHTML = `<div class="custom-video-player"><video src="${publicUrl}" class="w-full"></video><div class="video-controls"><button class="play-pause-btn"><i class="fas fa-play"></i></button><div class="progress-bar"><div class="progress-fill"></div></div><span class="time-display">0:00 / 0:00</span><button class="mute-btn"><i class="fas fa-volume-up"></i></button></div></div>`;
+      setTimeout(() => { const player = container.querySelector('.custom-video-player'); const video = player.querySelector('video'); initCustomVideoPlayer(video, player); }, 100);
+    } else if (isAudio) {
+      container.innerHTML = `
+        <div class="bg-gray-900/80 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/10 flex flex-col items-center min-w-[350px]">
+          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mb-8 shadow-lg border border-white/20">
+            <i class="fas fa-music text-3xl text-white"></i>
+          </div>
+          <h4 class="text-white font-medium mb-8 text-center w-full truncate px-4 max-w-[300px]" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</h4>
+          <audio controls src="${publicUrl}" class="w-full outline-none opacity-90"></audio>
+        </div>
+      `;
+    } else if (isPdf) {
+      container.innerHTML = `<iframe src="${publicUrl}" class="w-full h-[85vh] w-[85vw] rounded-2xl bg-white shadow-2xl border border-white/10"></iframe>`;
+    } else if (isOfficeDoc) {
+      const viewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(publicUrl)}&embedded=true`;
+      container.innerHTML = `<iframe src="${viewerUrl}" class="w-full h-[85vh] w-[85vw] rounded-2xl bg-white shadow-2xl border border-white/10"></iframe>`;
+    } else if (isText) {
+      try {
+        const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(file.storage_path);
+        if (error) throw error;
+        const textData = await data.text();
+        const safeClickName = escapeHtml(file.name).replace(/'/g, "\\'");
+        container.innerHTML = `
+          <div class="bg-gray-900/90 backdrop-blur-xl text-gray-300 p-8 rounded-2xl max-w-5xl max-h-[85vh] overflow-auto shadow-2xl w-[90vw] md:w-[75vw] text-left border border-white/10">
+            <h4 class="text-white mb-6 border-b border-white/10 pb-4 flex justify-between items-center sticky top-0 bg-gray-900/95 backdrop-blur pt-2 z-10">
+              <span class="font-medium text-blue-400 flex items-center"><i class="fas fa-file-code mr-3 text-white/50"></i>${escapeHtml(file.name)}</span>
+              <button onclick="downloadFileDirect('${file.storage_path}', '${safeClickName}')" class="text-white text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all border border-white/10"><i class="fas fa-download mr-2"></i> Download Source</button>
+            </h4>
+            <pre><code class="text-sm font-mono whitespace-pre-wrap leading-relaxed text-gray-400">${escapeHtml(textData)}</code></pre>
+          </div>
+        `;
+      } catch (e) {
+        container.innerHTML = `<div class="text-center text-white"><p class="text-red-400"><i class="fas fa-exclamation-triangle mb-3 text-4xl"></i><br>Failed to read file contents.</p></div>`;
+      }
+    } else {
+      const safeClickName = escapeHtml(file.name).replace(/'/g, "\\'");
+      container.innerHTML = `
+        <div class="text-center text-white bg-gray-900/80 backdrop-blur-xl p-12 rounded-3xl border border-white/10 shadow-2xl">
+          <i class="fas fa-file-archive text-6xl mb-6 text-blue-400/70"></i>
+          <p class="font-medium text-xl mb-3 max-w-[350px] truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</p>
+          <p class="text-gray-400 text-sm mb-8">No native preview available for this format.</p>
+          <button onclick="downloadFileDirect('${file.storage_path}', '${safeClickName}')" class="px-8 py-3.5 rounded-full btn-liquid w-full text-sm">
+            <i class="fas fa-download mr-2"></i>Download to View
+          </button>
+        </div>
+      `;
+    }
+  }
+  
+  function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImage').innerHTML = ''; }
+  window.downloadFileDirect = async function(storagePath, fileName) { const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath); if (error) { showToast("Download failed", true); return; } const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showToast(`Downloaded ${fileName}`); };
+  async function downloadFile(storagePath, fileName) { const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath); if (error) { showToast("Download failed", true); return; } const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showToast(`Downloaded ${fileName}`); }
+  
+  function setupDragAndDrop() {
+    const dragOverlay = document.getElementById('dragOverlay');
+    document.body.addEventListener('dragover', (e) => { e.preventDefault(); dragOverlay.classList.add('active'); });
+    document.body.addEventListener('dragleave', (e) => { if (!e.relatedTarget || !document.body.contains(e.relatedTarget)) dragOverlay.classList.remove('active'); });
+    document.body.addEventListener('drop', async (e) => { e.preventDefault(); dragOverlay.classList.remove('active'); if (!isAuthenticated) { showToast("Authentication Required.", true); return; } const items = e.dataTransfer.items; const files = []; for (let i = 0; i < items.length; i++) { const entry = items[i].webkitGetAsEntry(); if (entry) await traverseFileTree(entry, files); else if (items[i].kind === 'file') files.push(items[i].getAsFile()); } if (files.length) await showUploadFolderModal(files); });
+  }
+  
+  async function traverseFileTree(entry, files, path = '') {
+    if (entry.isFile) {
+      const file = await new Promise(resolve => entry.file(resolve));
+      file.customPath = path + entry.name;
+      files.push(file);
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      const entries = await new Promise(resolve => reader.readEntries(resolve));
+      for (let child of entries) await traverseFileTree(child, files, path + entry.name + '/');
+    }
+  }
+  
+  async function loadFolders() { if (!supabaseClient || !isAuthenticated) return []; try { const { data, error } = await supabaseClient.from(FOLDER_TABLE).select('*').order('name'); if (error) throw error; folders = data || []; return folders; } catch(e) { return []; } }
+  async function loadFiles() { if (!supabaseClient || !isAuthenticated) return []; try { const { data, error } = await supabaseClient.from(TABLE_NAME).select('*').order('uploaded_at', { ascending: false }); if (error) throw error; files = (data || []).filter(f => !f.is_folder); return files; } catch(e) { return []; } }
+  
+  async function createFolder(name) {
+    if (!name.trim()) { showToast("Folder name required", true); return false; }
+    try {
+      const userId = sessionStorage.getItem('session_user_id') || generateUUID();
+      sessionStorage.setItem('session_user_id', userId);
+      const { error } = await supabaseClient.from(FOLDER_TABLE).insert({ name: name.trim(), parent_id: currentFolderId, user_id: userId, created_at: Date.now() });
+      if (error) throw error;
+      await loadFolders();
+      await renderContent();
+      addActivityLog('create', name, 'folder created');
+      showToast(`📁 Folder "${name}" created`);
+      return true;
+    } catch(e) { showToast(`Failed: ${e.message}`, true); return false; }
+  }
+  
+  async function deleteFolder(folderId, folderName) {
+    if (!isAdmin()) { showToast("Admin access required", true); return false; }
+    try {
+      const filesInFolder = files.filter(f => f.folder_id === folderId);
+      await Promise.all(filesInFolder.map(async (file) => { await supabaseClient.storage.from(STORAGE_BUCKET).remove([file.storage_path]); await supabaseClient.from(TABLE_NAME).delete().eq('id', file.id); }));
+      const subfolders = folders.filter(f => f.parent_id === folderId);
+      await Promise.all(subfolders.map(sub => deleteFolder(sub.id, sub.name)));
+      await supabaseClient.from(FOLDER_TABLE).delete().eq('id', folderId);
+      await loadFolders();
+      await loadFiles();
+      await renderContent();
+      addActivityLog('delete', folderName, 'folder removed');
+      showToast(`🗑️ Folder "${folderName}" deleted`);
+      return true;
+    } catch(e) { showToast(`Delete failed: ${e.message}`, true); return false; }
+  }
+  
+  async function deleteFile(fileId, storagePath, fileName) {
+    if (!isAdmin()) { showToast("Admin access required", true); return false; }
+    try {
+      await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]);
+      await supabaseClient.from(TABLE_NAME).delete().eq('id', fileId);
+      await loadFiles();
+      await renderContent();
+      addActivityLog('delete', fileName, 'file removed');
+      showToast(`🗑️ File ${fileName} deleted`);
+      return true;
+    } catch(e) { showToast(`Delete failed: ${e.message}`, true); return false; }
+  }
+  
+  async function moveToFolder(itemId, itemType, targetFolderId) {
+    if (!isAdmin()) { showToast("Admin access required", true); return false; }
+    try {
+      let itemName = '';
+      if (itemType === 'folder') {
+        const folder = folders.find(f => f.id === itemId);
+        itemName = folder?.name || '';
+        await supabaseClient.from(FOLDER_TABLE).update({ parent_id: targetFolderId }).eq('id', itemId);
+        await loadFolders();
+      } else {
+        const file = files.find(f => f.id === itemId);
+        itemName = file?.name || '';
+        await supabaseClient.from(TABLE_NAME).update({ folder_id: targetFolderId }).eq('id', itemId);
+        await loadFiles();
+      }
+      await renderContent();
+      addActivityLog('move', itemName, 'relocated');
+      showToast("📦 Move successful");
+      return true;
+    } catch(e) { showToast(`Move failed: ${e.message}`, true); return false; }
+  }
+  
+  async function renameFolder(folderId, newName) {
+    if (!isAdmin()) { showToast("Admin access required", true); return false; }
+    try {
+      const oldName = folders.find(f => f.id === folderId)?.name;
+      await supabaseClient.from(FOLDER_TABLE).update({ name: newName }).eq('id', folderId);
+      await loadFolders();
+      await renderContent();
+      addActivityLog('rename', `${oldName} → ${newName}`, 'folder renamed');
+      showToast(`Folder renamed to "${newName}"`);
+      return true;
+    } catch(e) { showToast(`Rename failed: ${e.message}`, true); return false; }
+  }
+  
+  async function renameFile(fileId, newName) {
+    if (!isAdmin()) { showToast("Admin access required", true); return false; }
+    try {
+      const oldName = files.find(f => f.id === fileId)?.name;
+      await supabaseClient.from(TABLE_NAME).update({ name: newName }).eq('id', fileId);
+      await loadFiles();
+      await renderContent();
+      addActivityLog('rename', `${oldName} → ${newName}`, 'file renamed');
+      showToast(`File renamed to "${newName}"`);
+      return true;
+    } catch(e) { showToast(`Rename failed: ${e.message}`, true); return false; }
+  }
+  
+  async function showUploadFolderModal(files) {
+    if (!isAuthenticated) { showToast("Authentication Required.", true); return; }
+    pendingUploadFiles = Array.from(files);
+    isUploadingFiles = false;
+    renderUploadPreview();
+    await renderUploadFolderTree();
+    document.getElementById('uploadFolderModal').classList.add('active');
+  }
+
+  function renderUploadPreview() {
+    const container = document.getElementById('uploadPreviewGrid');
+    document.getElementById('previewCount').innerText = pendingUploadFiles.length;
+    if (pendingUploadFiles.length === 0) {
+      container.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10"><i class="fas fa-box-open text-3xl mb-3 opacity-50"></i><br><span class="text-sm">No files staged</span></div>';
+      document.getElementById('confirmFolderUploadBtn').disabled = true;
+      document.getElementById('confirmFolderUploadBtn').style.opacity = '0.5';
+      return;
+    }
+    document.getElementById('confirmFolderUploadBtn').disabled = false;
+    document.getElementById('confirmFolderUploadBtn').style.opacity = '1';
+    
+    let html = '';
+    pendingUploadFiles.forEach((file, index) => {
+      const isImage = file.type.startsWith('image/');
+      const url = isImage ? URL.createObjectURL(file) : '';
+      const icon = isImage ? '' : (file.type.startsWith('video/') ? 'fa-video' : 'fa-file-alt');
+      
+      html += `
+        <div id="preview-file-${index}" class="flex flex-col bg-white/5 p-2.5 rounded-xl border border-white/5 relative group transition-all hover:bg-white/10">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-black/40 flex items-center justify-center overflow-hidden shrink-0 border border-white/5">
+              ${isImage ? `<img src="${url}" class="w-full h-full object-cover">` : `<i class="fas ${icon} text-blue-400 text-sm"></i>`}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-gray-200 font-medium text-xs truncate" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</p>
+              <p class="text-gray-500 text-[10px] file-size-text mt-0.5">${formatBytes(file.size)}</p>
+              
+              <div class="file-inline-progress hidden mt-2 w-full">
+                <div class="flex justify-between text-[10px] text-gray-400 mb-1 font-medium">
+                  <span class="file-status-text">Pending...</span>
+                  <span class="file-percent-text text-blue-400">0%</span>
+                </div>
+                <div class="w-full bg-black/40 rounded-full h-1.5 border border-white/5 overflow-hidden">
+                  <div class="bg-blue-500 h-full file-progress-fill" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button onclick="removePendingFile(${index})" class="remove-file-btn absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-[10px] hover:bg-red-400 shadow-md">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+  
+  window.removePendingFile = function(index) {
+    if (isUploadingFiles) return;
+    pendingUploadFiles.splice(index, 1);
+    renderUploadPreview();
   };
   
-  let supabaseClient = null, currentFilter = 'all', allFilesMetadata = [], isAuthenticated = false;
-  let currentUserRole = null;
-  let currentSearchQuery = '';
-  let sessionTimeout = null;
-  const MAX_BYTES = 1 * 1024 * 1024 * 1024, STORAGE_BUCKET = 'anime-files', TABLE_NAME = 'user_files';
-  const SESSION_DURATION = 30 * 60 * 1000;
+  async function renderUploadFolderTree() {
+    const container = document.getElementById('uploadFolderTree');
+    await loadFolders();
+    let treeHtml = `<div class="folder-tree-item-liquid selected" data-folder-id="null"><i class="fas fa-home mr-3 text-blue-400"></i>Home Directory</div>`;
+    function renderTree(items, level) { let html = ''; for (let item of items) { html += `<div class="folder-tree-item-liquid" style="margin-left: ${level * 20}px" data-folder-id="${item.id}"><i class="fas fa-folder mr-3 text-gray-500"></i>${escapeHtml(item.name)}</div>`; const children = folders.filter(f => f.parent_id === item.id); if (children.length) html += renderTree(children, level + 1); } return html; }
+    const rootFolders = folders.filter(f => f.parent_id === null);
+    treeHtml += renderTree(rootFolders, 1);
+    container.innerHTML = treeHtml;
+    container.querySelectorAll('.folder-tree-item-liquid').forEach(el => { el.addEventListener('click', (e) => { e.stopPropagation(); selectedUploadFolder = el.dataset.folderId === 'null' ? null : el.dataset.folderId; container.querySelectorAll('.folder-tree-item-liquid').forEach(item => item.classList.remove('selected')); el.classList.add('selected'); }); });
+  }
+  
+  async function executeUploadWithFolder() {
+    if (!pendingUploadFiles || pendingUploadFiles.length === 0) return;
+    
+    uploadCancelRequested = false;
+    isUploadingFiles = true;
 
-  function showToast(msg, isErr = false) { /* same as before but concise */
-    const toastDiv = document.getElementById('toastMessage'), toastSpan = document.getElementById('toastText');
-    toastSpan.innerHTML = escapeHtml(msg);
-    toastDiv.classList.remove('error', 'success');
-    toastDiv.classList.add(isErr ? 'error' : 'success');
-    toastDiv.classList.add('show');
-    setTimeout(() => toastDiv.classList.remove('show'), 3000);
-  }
-  function showProgressModal() { document.getElementById('progressModal').classList.add('active'); }
-  function hideProgressModal() { document.getElementById('progressModal').classList.remove('active'); }
-  function formatBytes(bytes) { if(bytes===0)return '0 B'; const k=1024; const i=Math.floor(Math.log(bytes)/Math.log(k)); return parseFloat((bytes/Math.pow(k,i)).toFixed(1))+' '+['B','KB','MB','GB'][i]; }
-  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-  
-  async function uploadWithProgress(files) { /* same robust logic */
-    if (!supabaseClient || !isAuthenticated) { showToast("❌ Please login first!", true); showLoginModal(); return false; }
-    if (currentUserRole !== 'admin' && currentUserRole !== 'viewer') { showToast("Permission denied: Upload not allowed", true); return false; }
-    let currentUsed = await getTotalUsedBytes();
-    let totalIncoming = Array.from(files).reduce((s,f)=>s+f.size,0);
-    if (currentUsed + totalIncoming > MAX_BYTES) { showToast("❌ Exceeds 1GB limit", true); return false; }
-    showProgressModal();
-    const fileListContainer = document.getElementById('fileProgressList');
-    const overallBar = document.getElementById('overallProgressBar');
-    const overallPercentSpan = document.getElementById('overallPercent');
-    let completed = 0, failed = 0;
-    fileListContainer.innerHTML = '';
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const itemDiv = document.createElement('div');
-      itemDiv.className = 'file-progress-item';
-      itemDiv.id = `progress-item-${i}`;
-      itemDiv.innerHTML = `<div class="flex items-center justify-between"><div class="flex items-center gap-3 flex-1 min-w-0"><div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center"><i class="fas fa-file-alt text-pink-400 text-xs"></i></div><div class="flex-1 min-w-0"><p class="text-white text-sm font-medium truncate">${escapeHtml(file.name)}</p><p class="text-gray-400 text-xs">${formatBytes(file.size)}</p></div></div><div class="text-right"><span class="file-percent text-xs text-pink-400">0%</span></div></div><div class="progress-bar-container mt-2" style="height:4px; margin:0.5rem 0 0 0"><div class="progress-bar-fill" style="width:0%; height:4px;" id="progress-fill-${i}"></div></div>`;
-      fileListContainer.appendChild(itemDiv);
-    }
-    for (let idx = 0; idx < files.length; idx++) {
-      const file = files[idx];
-      const nowUsed = await getTotalUsedBytes();
-      if (nowUsed + file.size > MAX_BYTES) { showToast(`Skipped ${escapeHtml(file.name)}`, true); failed++; continue; }
-      const fileId = crypto.randomUUID();
-      try {
-        let progressInterval;
-        const progressFill = document.getElementById(`progress-fill-${idx}`);
-        const percentSpan = document.querySelector(`#progress-item-${idx} .file-percent`);
-        let simulatedProgress = 0;
-        progressInterval = setInterval(() => {
-          if (simulatedProgress < 90) { simulatedProgress += Math.random() * 15; if (simulatedProgress > 90) simulatedProgress = 90; if (progressFill) progressFill.style.width = `${simulatedProgress}%`; if (percentSpan) percentSpan.innerText = `${Math.floor(simulatedProgress)}%`; }
-        }, 200);
-        let fileExt = file.name.split('.').pop() || 'bin'; fileExt = fileExt.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
-        const storagePath = `${fileId}.${fileExt}`;
-        const { error: uploadError } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(storagePath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
-        if (uploadError) throw uploadError;
-        clearInterval(progressInterval);
-        if (progressFill) progressFill.style.width = `100%`;
-        if (percentSpan) percentSpan.innerText = `100%`;
-        const deviceId = sessionStorage.getItem('session_user_id') || crypto.randomUUID();
-        sessionStorage.setItem('session_user_id', deviceId);
-        const { error: insertError } = await supabaseClient.from(TABLE_NAME).insert({ id: fileId, name: file.name, size: file.size, type: file.type || 'application/octet-stream', storage_path: storagePath, uploaded_at: Date.now(), user_id: deviceId });
-        if (insertError) { await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]); throw insertError; }
-        document.querySelector(`#progress-item-${idx}`).classList.add('completed');
-        completed++;
-      } catch(err) { console.error(err); document.querySelector(`#progress-item-${idx}`).classList.add('failed'); failed++; }
-      const overallPercent = ((completed + failed) / files.length) * 100;
-      overallBar.style.width = `${overallPercent}%`;
-      overallPercentSpan.innerText = `${Math.floor(overallPercent)}%`;
-    }
-    const summaryDiv = document.getElementById('uploadSummary');
-    summaryDiv.classList.remove('hidden');
-    summaryDiv.innerHTML = `<i class="fas fa-check-circle text-green-400"></i> ${completed} uploaded | <i class="fas fa-times-circle text-red-400"></i> ${failed} failed`;
-    setTimeout(() => { hideProgressModal(); summaryDiv.classList.add('hidden'); }, 2500);
-    if (completed) { showToast(`✨ ${completed} file(s) uploaded!`); await refreshAllData(); resetSessionTimer(); }
-    return true;
-  }
+    const masterProgWrapper = document.getElementById('masterProgressWrapper');
+    const masterProgFill = document.getElementById('masterProgressFill');
+    const masterProgText = document.getElementById('masterProgressText');
+    const masterStatusText = document.getElementById('masterStatusText');
+    const cancelBtn = document.getElementById('cancelFolderUploadBtn');
+    const confirmBtn = document.getElementById('confirmFolderUploadBtn');
+    
+    masterProgWrapper.classList.remove('hidden');
+    masterProgFill.style.width = '0%';
+    masterProgText.innerText = '0%';
+    masterStatusText.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-3 text-blue-400"></i>Preparing upload...';
 
-  async function initSupabaseClient() { const { createClient } = window.supabase; return createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
-  async function fetchAllMetadataFromSupabase() { if (!supabaseClient || !isAuthenticated) return []; const { data } = await supabaseClient.from(TABLE_NAME).select('id, name, size, type, storage_path, uploaded_at').order('uploaded_at', { ascending: false }); return data?.map(f => ({ id: f.id, name: f.name, size: Number(f.size), type: f.type, uploadedAt: f.uploaded_at, storagePath: f.storage_path })) || []; }
-  async function getTotalUsedBytes() { if (!supabaseClient || !isAuthenticated) return 0; const { data } = await supabaseClient.from(TABLE_NAME).select('size'); return data?.reduce((sum, f) => sum + (f.size || 0), 0) || 0; }
-  async function deleteFileFromSupabase(fileId, storagePath) { if (currentUserRole !== 'admin') throw new Error("Permission denied"); if (storagePath) await supabaseClient.storage.from(STORAGE_BUCKET).remove([storagePath]); await supabaseClient.from(TABLE_NAME).delete().eq('id', fileId); }
-  async function downloadFileFromSupabase(storagePath, originalName) { const { data } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath); const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = originalName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); }
-  function getPublicUrl(storagePath) { if (!storagePath) return null; const { data } = supabaseClient.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath); return data.publicUrl; }
-  function getFileCategory(mime, filename) { const ext = filename.split('.').pop().toLowerCase(); if (mime.startsWith('image/') || ['jpg','jpeg','png','gif','webp'].includes(ext)) return 'image'; if (mime.startsWith('video/') || ['mp4','webm','mov'].includes(ext)) return 'video'; if (mime.startsWith('audio/') || ['mp3','wav','ogg'].includes(ext)) return 'audio'; if (mime.includes('pdf') || mime.includes('word') || ['pdf','doc','docx','txt'].includes(ext)) return 'document'; return 'other'; }
-  
-  async function refreshAllData() { if (!supabaseClient || !isAuthenticated) { renderLockedGrid(); updateStorageUI(); return; } allFilesMetadata = await fetchAllMetadataFromSupabase(); await updateStorageMeterUI(); await renderGrid(); resetSessionTimer(); }
-  function updateStorageUI() { document.getElementById('storageUsedText').innerHTML = `0 MB`; document.getElementById('storageFillBar').style.width = '0%'; document.getElementById('fileCountBadge').innerHTML = `0`; document.getElementById('storagePercent').innerHTML = `0%`; }
-  function renderLockedGrid() { const grid = document.getElementById('fileGrid'); grid.innerHTML = `<div class="col-span-full text-center py-20"><i class="fas fa-lock text-5xl text-pink-400/50 mb-4 block"></i><p class="text-gray-400">Login to view your stored files</p><button id="unlockFromGridBtn" class="mt-4 px-6 py-2 rounded-xl btn-primary text-white text-sm flex items-center gap-2 mx-auto"><i class="fas fa-sign-in-alt"></i> Sign In</button></div>`; document.getElementById('unlockFromGridBtn')?.addEventListener('click', () => showLoginModal()); }
-  async function updateStorageMeterUI() { const usedBytes = await getTotalUsedBytes(); const percent = (usedBytes / MAX_BYTES) * 100; document.getElementById('storageFillBar').style.width = `${Math.min(percent, 100)}%`; document.getElementById('storageUsedText').innerHTML = `${(usedBytes / (1024*1024)).toFixed(2)} MB`; document.getElementById('storagePercent').innerHTML = `${Math.min(percent, 100).toFixed(1)}%`; document.getElementById('fileCountBadge').innerHTML = `${allFilesMetadata.length}`; }
-  function getFilteredAndSearchedFiles() { let filtered = [...allFilesMetadata]; if (currentFilter !== 'all') filtered = filtered.filter(f => getFileCategory(f.type, f.name) === currentFilter); if (currentSearchQuery.trim()) filtered = filtered.filter(f => f.name.toLowerCase().includes(currentSearchQuery.toLowerCase())); return filtered; }
-  async function renderGrid() { 
-    if (!isAuthenticated) { renderLockedGrid(); return; } 
-    const filtered = getFilteredAndSearchedFiles();
-    if (filtered.length === 0) { document.getElementById('fileGrid').innerHTML = `<div class="col-span-full text-center py-20"><i class="fas fa-cherry-blossom text-5xl text-pink-400/50 mb-4 block"></i><p class="text-gray-400">${currentSearchQuery ? 'No files match' : 'Upload your first memory!'}</p></div>`; return; }
-    let html = ''; const canDelete = (currentUserRole === 'admin');
-    for (const file of filtered) { const category = getFileCategory(file.type, file.name); const ext = file.name.split('.').pop().toLowerCase(); const sizeFormatted = formatBytes(file.size); const fileNameShort = file.name.length > 25 ? file.name.substring(0,22)+'...' : file.name; const publicUrl = getPublicUrl(file.storagePath); const iconClass = { image:'fa-image', video:'fa-video', audio:'fa-music', document:'fa-file-alt', other:'fa-file' }[category] || 'fa-file'; 
-      let mediaHtml = (category === 'image' && publicUrl) ? `<div class="relative w-full h-40 bg-gradient-to-br from-purple-900/40 to-pink-900/40 rounded-t-xl overflow-hidden"><img src="${publicUrl}" class="thumbnail-img w-full h-40 object-cover" alt="preview" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\'w-full h-40 flex items-center justify-center\'><i class=\'fas ${iconClass} text-5xl text-pink-400/60\'></i></div>'"></div>` : `<div class="h-40 w-full bg-gradient-to-br from-gray-800/50 to-purple-900/30 flex flex-col items-center justify-center rounded-t-xl gap-2"><i class="fas ${iconClass} text-5xl text-pink-400/70"></i><span class="text-xs text-gray-400 bg-black/40 px-2 py-1 rounded-full">.${escapeHtml(ext)}</span></div>`;
-      html += `<div class="file-card group" data-file-id="${escapeHtml(file.id)}" data-storage-path="${escapeHtml(file.storagePath)}" data-file-name="${escapeHtml(file.name)}"><div>${mediaHtml}</div><div class="p-3"><div class="flex justify-between items-start mb-1"><p class="font-semibold text-sm text-white truncate">${escapeHtml(fileNameShort)}</p><span class="text-xs px-2 py-0.5 rounded-full bg-white/5 text-pink-300">${category === 'image' ? '🖼️' : (category === 'video' ? '🎬' : (category === 'audio' ? '🎵' : '📄'))}</span></div><div class="text-xs text-gray-400 flex justify-between"><span>${sizeFormatted}</span><span>${new Date(file.uploadedAt).toLocaleDateString()}</span></div><div class="flex gap-2 mt-3"><button class="download-btn flex-1 bg-white/5 hover:bg-cyan-500/20 text-cyan-300 text-xs py-1.5 rounded-lg"><i class="fas fa-download"></i> Get</button>${canDelete ? `<button class="delete-btn flex-1 bg-white/5 hover:bg-red-500/20 text-red-300 text-xs py-1.5 rounded-lg"><i class="fas fa-trash-alt"></i> Delete</button>` : `<button class="flex-1 bg-white/5 text-gray-500 text-xs py-1.5 rounded-lg cursor-not-allowed" disabled><i class="fas fa-ban"></i> No Delete</button>`}</div></div></div>`; }
-    document.getElementById('fileGrid').innerHTML = html; attachEvents(); }
-  function attachEvents() { 
-    document.querySelectorAll('.download-btn').forEach(btn => btn.addEventListener('click', async (e) => { const card = e.currentTarget.closest('.file-card'); await downloadFileFromSupabase(card.getAttribute('data-storage-path'), card.getAttribute('data-file-name')); showToast("Downloaded"); resetSessionTimer(); }));
-    if (currentUserRole === 'admin') document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => { const card = e.currentTarget.closest('.file-card'); if(confirm(`Delete?`)) { await deleteFileFromSupabase(card.getAttribute('data-file-id'), card.getAttribute('data-storage-path')); await refreshAllData(); showToast("Deleted"); resetSessionTimer(); } }));
+    confirmBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i>Uploading...';
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    
+    cancelBtn.innerText = 'Cancel Upload';
+    cancelBtn.classList.add('text-red-400', 'border-red-500/30', 'hover:bg-red-500/10');
+    cancelBtn.classList.remove('text-gray-300', 'border-white/10', 'hover:bg-white/10');
+    
+    const uploadQueue = pendingUploadFiles.map((f, i) => {
+      const card = document.getElementById(`preview-file-${i}`);
+      card.querySelector('.remove-file-btn').classList.add('hidden');
+      card.querySelector('.file-size-text').classList.add('hidden');
+      card.querySelector('.file-inline-progress').classList.remove('hidden');
+      return {
+        file: f, name: f.name, size: f.size, type: f.type,
+        path: f.webkitRelativePath || f.customPath || '', targetFolderId: selectedUploadFolder,
+        dom: { statusText: card.querySelector('.file-status-text'), percentText: card.querySelector('.file-percent-text'), fillBar: card.querySelector('.file-progress-fill') }
+      };
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const folderCache = new Map();
+    for (let item of uploadQueue) {
+      if (item.path && item.path.includes('/')) {
+        const pathParts = item.path.split('/');
+        pathParts.pop();
+        let currentParent = selectedUploadFolder;
+        for (let part of pathParts) {
+          const cacheKey = `${currentParent}/${part}`;
+          if (folderCache.has(cacheKey)) { currentParent = folderCache.get(cacheKey); } else {
+            let existing = folders.find(f => f.name === part && f.parent_id === currentParent);
+            if (existing) { folderCache.set(cacheKey, existing.id); currentParent = existing.id; } else {
+              const newId = generateUUID();
+              const userId = sessionStorage.getItem('session_user_id') || generateUUID();
+              await supabaseClient.from(FOLDER_TABLE).insert({ id: newId, name: part, parent_id: currentParent, user_id: userId, created_at: Date.now() });
+              folders.push({ id: newId, name: part, parent_id: currentParent });
+              folderCache.set(cacheKey, newId); currentParent = newId;
+            }
+          }
+        }
+        item.targetFolderId = currentParent;
+      } else { item.targetFolderId = selectedUploadFolder; }
+    }
+    
+    let completed = 0;
+    const total = uploadQueue.length;
+    const totalBytes = uploadQueue.reduce((sum, item) => sum + item.size, 0);
+    let globalLoadedBytes = new Array(total).fill(0);
+    let fileIndex = 0;
+    
+    const updateOverallProgress = () => {
+      const currentLoadedBytes = globalLoadedBytes.reduce((a, b) => a + b, 0);
+      let percent = totalBytes > 0 ? (currentLoadedBytes / totalBytes) * 100 : (completed / total) * 100;
+      masterProgFill.style.width = `${percent}%`;
+      masterProgText.innerText = `${Math.round(percent)}%`;
+      masterStatusText.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-3 text-blue-400"></i>Uploading: ${completed} of ${total}`;
+    };
+    
+    const updateFileProgress = (item, percent, status = 'Uploading...') => {
+      item.dom.fillBar.style.width = `${percent}%`;
+      item.dom.percentText.innerText = `${Math.round(percent)}%`;
+      item.dom.statusText.innerText = status;
+      if (status === 'Complete') item.dom.statusText.classList.replace('text-gray-400', 'text-green-400');
+      else if (status === 'Error') item.dom.statusText.classList.replace('text-gray-400', 'text-red-400');
+    };
+
+    const uploadWithXHR = (item, storagePath, itemIndex) => {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${storagePath}`);
+        xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+        xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+        xhr.setRequestHeader('Content-Type', item.type || 'application/octet-stream');
+
+        xhr.upload.onprogress = (e) => {
+          if (uploadCancelRequested) { xhr.abort(); return; }
+          if (e.lengthComputable) {
+            globalLoadedBytes[itemIndex] = e.loaded;
+            const percentComplete = (e.loaded / e.total) * 100;
+            updateFileProgress(item, Math.min(percentComplete, 99), 'Uploading...');
+            updateOverallProgress();
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) { globalLoadedBytes[itemIndex] = item.size; resolve(); } else { reject(new Error(xhr.responseText)); }
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(item.file);
+      });
+    };
+    
+    const uploadWorker = async () => {
+      while (fileIndex < total && !uploadCancelRequested) {
+        const i = fileIndex++;
+        const item = uploadQueue[i];
+        try {
+          updateFileProgress(item, 0, 'Starting...');
+          const fileId = generateUUID();
+          const ext = item.name.split('.').pop() || 'bin';
+          const storagePath = `${fileId}.${ext}`;
+          await uploadWithXHR(item, storagePath, i);
+          await supabaseClient.from(TABLE_NAME).insert({ id: fileId, name: item.name, size: item.size, type: item.type, storage_path: storagePath, uploaded_at: Date.now(), folder_id: item.targetFolderId, is_folder: false });
+          updateFileProgress(item, 100, 'Complete');
+          completed++;
+          updateOverallProgress();
+        } catch(err) {
+          updateFileProgress(item, 0, 'Error');
+          completed++;
+          updateOverallProgress();
+        }
+      }
+    };
+    
+    const workers = Array(Math.min(CONCURRENCY_LIMIT, total)).fill(0).map(uploadWorker);
+    await Promise.all(workers);
+    updateOverallProgress();
+    
+    setTimeout(async () => {
+      isUploadingFiles = false;
+      masterProgWrapper.classList.add('hidden');
+      confirmBtn.innerHTML = 'Begin Upload';
+      confirmBtn.disabled = false;
+      confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      cancelBtn.innerText = 'Cancel';
+      cancelBtn.classList.remove('text-red-400', 'border-red-500/30', 'hover:bg-red-500/10');
+      cancelBtn.classList.add('text-gray-300', 'border-white/10', 'hover:bg-white/10');
+      cancelBtn.disabled = false;
+      document.getElementById('uploadFolderModal').classList.remove('active');
+      await loadFolders();
+      await loadFiles();
+      await renderContent();
+      if (completed > 0 && !uploadCancelRequested) {
+        confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#3b82f6', '#8b5cf6', '#06b6d4'] });
+        addActivityLog('upload', `${completed} files`, 'uploaded successfully');
+        showToast(`${completed} file(s) uploaded successfully.`);
+      } else if (uploadCancelRequested) { showToast(`Upload cancelled. ${completed} of ${total} files processed.`); }
+      pendingUploadFiles = null;
+      selectedUploadFolder = null;
+    }, 1500);
   }
-  function showLoginModal() { document.getElementById('loginModal').style.display = 'flex'; document.getElementById('loginErrorMsg').classList.add('hidden'); }
-  function hideLoginModal() { document.getElementById('loginModal').style.display = 'none'; }
-  function handleLogin() { const username = document.getElementById('loginUsername').value.trim(), password = document.getElementById('loginPassword').value; const user = USERS[username]; if (user && user.passwordHash === btoa(password)) { isAuthenticated = true; currentUserRole = user.role; sessionStorage.setItem('vault_auth', 'true'); sessionStorage.setItem('auth_time', Date.now().toString()); sessionStorage.setItem('user_role', currentUserRole); hideLoginModal(); updateUIForAuthState(); refreshAllData(); resetSessionTimer(); showToast(`Welcome, ${username} (${currentUserRole === 'admin' ? 'Admin' : 'Viewer'})!`); } else { document.getElementById('loginErrorText').innerText = "Invalid credentials"; document.getElementById('loginErrorMsg').classList.remove('hidden'); showToast("Login failed", true); } }
-  function handleLogout() { isAuthenticated = false; currentUserRole = null; if(sessionTimeout) clearTimeout(sessionTimeout); sessionStorage.clear(); updateUIForAuthState(); allFilesMetadata = []; renderLockedGrid(); updateStorageUI(); showToast("Logged out"); showLoginModal(); }
-  function updateUIForAuthState() { const uploadLabel = document.getElementById('uploadLabel'), refreshBtn = document.getElementById('refreshBtn'), filterBtns = document.querySelectorAll('.filter-btn'), logoutBtn = document.getElementById('logoutHeaderBtn'), roleBadge = document.getElementById('roleBadge'); if (isAuthenticated) { uploadLabel.classList.remove('opacity-50','pointer-events-none'); refreshBtn.classList.remove('opacity-50','cursor-not-allowed'); refreshBtn.disabled=false; filterBtns.forEach(btn=>{btn.classList.remove('opacity-60','cursor-not-allowed'); btn.disabled=false;}); logoutBtn.classList.remove('hidden'); document.getElementById('syncStatus').innerHTML='Connected'; document.getElementById('syncStatus').className='text-green-400 text-xs'; roleBadge.classList.remove('hidden'); roleBadge.textContent=currentUserRole==='admin'?'👑 ADMIN':'👁️ VIEWER'; roleBadge.className=`role-badge ${currentUserRole==='admin'?'role-admin':'role-viewer'}`; document.getElementById('filterLabel').innerHTML='All Memories'; document.getElementById('subtitleMsg').innerHTML=currentUserRole==='admin'?'Full access · Upload, Download & Delete':'Upload & Download only'; } else { uploadLabel.classList.add('opacity-50','pointer-events-none'); refreshBtn.classList.add('opacity-50','cursor-not-allowed'); refreshBtn.disabled=true; filterBtns.forEach(btn=>{btn.classList.add('opacity-60','cursor-not-allowed'); btn.disabled=true;}); logoutBtn.classList.add('hidden'); document.getElementById('syncStatus').innerHTML='Locked'; document.getElementById('syncStatus').className='text-yellow-400 text-xs'; roleBadge.classList.add('hidden'); document.getElementById('filterLabel').innerHTML='Authentication Required'; document.getElementById('subtitleMsg').innerHTML='Please login to access your cloud vault'; } }
-  function setupDragAndDrop() { const dropZone = document.getElementById('dragDropZone'); const fileInput = document.getElementById('uploadInput'); ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, preventDefaults, false); document.body.addEventListener(eventName, preventDefaults, false); }); function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); } ['dragenter', 'dragover'].forEach(eventName => { dropZone.addEventListener(eventName, () => { dropZone.classList.add('drop-zone-active'); }, false); }); ['dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, () => { dropZone.classList.remove('drop-zone-active'); }, false); }); dropZone.addEventListener('drop', async (e) => { const dt = e.dataTransfer; const files = dt.files; if (files.length > 0 && isAuthenticated && (currentUserRole === 'admin' || currentUserRole === 'viewer')) { await uploadWithProgress(Array.from(files)); } else if (!isAuthenticated) { showToast("Login required", true); showLoginModal(); } else { showToast("Permission denied", true); } }); dropZone.addEventListener('click', () => { if(isAuthenticated && (currentUserRole === 'admin' || currentUserRole === 'viewer')) fileInput.click(); else if(!isAuthenticated){ showToast("Login required", true); showLoginModal(); } else showToast("Upload not allowed", true); }); }
-  function resetSessionTimer() { if(sessionTimeout) clearTimeout(sessionTimeout); if(isAuthenticated) sessionTimeout = setTimeout(() => { if(isAuthenticated) handleLogout(); }, SESSION_DURATION); }
-  function setupFilters() { document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', async () => { if(!isAuthenticated){ showToast("Login first",true); showLoginModal(); return; } currentFilter = btn.getAttribute('data-filter'); document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active-filter')); btn.classList.add('active-filter'); document.getElementById('filterLabel').innerHTML = currentFilter==='all'?'All Memories':`${currentFilter.charAt(0).toUpperCase()+currentFilter.slice(1)}s`; await renderGrid(); })); }
-  function setupSearch() { const searchInput = document.getElementById('searchInput'), clearBtn = document.getElementById('clearSearchBtn'); searchInput.addEventListener('input', async (e) => { currentSearchQuery = e.target.value; clearBtn.classList.toggle('hidden', !currentSearchQuery); await renderGrid(); }); clearBtn.addEventListener('click', async () => { searchInput.value = ''; currentSearchQuery = ''; clearBtn.classList.add('hidden'); await renderGrid(); }); }
-  function startSakura() { const canvas = document.getElementById('sakuraCanvas'), ctx = canvas.getContext('2d'); let petals=[], width, height; function resize(){ width=window.innerWidth; height=window.innerHeight; canvas.width=width; canvas.height=height; } window.addEventListener('resize',resize); resize(); class Petal{ constructor(){ this.x=Math.random()*width; this.y=Math.random()*height-height; this.size=5+Math.random()*8; this.speedY=0.3+Math.random()*1.2; this.speedX=-0.2+Math.random()*0.4; this.rotation=Math.random()*Math.PI*2;} update(){ this.y+=this.speedY; this.x+=this.speedX; this.rotation+=0.02; if(this.y>height+30){ this.y=-30; this.x=Math.random()*width;} if(this.x>width+30) this.x=-30; if(this.x<-30) this.x=width+30;} draw(){ ctx.save(); ctx.translate(this.x,this.y); ctx.rotate(this.rotation); ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(this.size/2,-this.size/1.5,this.size,-this.size/4,0,0); ctx.bezierCurveTo(-this.size,-this.size/4,-this.size/2,-this.size/1.5,0,0); ctx.fillStyle=`rgba(255,182,193,0.4)`; ctx.fill(); ctx.restore();} } for(let i=0;i<40;i++) petals.push(new Petal()); function animate(){ ctx.clearRect(0,0,width,height); petals.forEach(p=>{p.update(); p.draw();}); requestAnimationFrame(animate); } animate(); }
   
-  (async function() { 
-    supabaseClient = await initSupabaseClient(); 
-    const savedAuth = sessionStorage.getItem('vault_auth'), savedRole = sessionStorage.getItem('user_role'), authTime = sessionStorage.getItem('auth_time');
-    if(savedAuth === 'true' && authTime && savedRole && (Date.now() - parseInt(authTime) < SESSION_DURATION)) { isAuthenticated = true; currentUserRole = savedRole; updateUIForAuthState(); await refreshAllData(); resetSessionTimer(); } else { isAuthenticated = false; updateUIForAuthState(); renderLockedGrid(); }
-    setupFilters(); setupSearch(); setupDragAndDrop();
-    document.getElementById('uploadInput').addEventListener('change', async (e) => { if(e.target.files.length && isAuthenticated && (currentUserRole === 'admin' || currentUserRole === 'viewer')) await uploadWithProgress(Array.from(e.target.files)); else if(!isAuthenticated) { showToast("Login required", true); showLoginModal(); } e.target.value=''; });
-    document.getElementById('refreshBtn').addEventListener('click', async () => { if(isAuthenticated) { await refreshAllData(); showToast("🔄 Synced"); resetSessionTimer(); } else { showToast("Login required", true); showLoginModal(); } });
-    document.getElementById('loginBtn').addEventListener('click', handleLogin); document.getElementById('logoutHeaderBtn').addEventListener('click', handleLogout);
-    document.getElementById('loginModal').addEventListener('click', (e) => { if(e.target === document.getElementById('loginModal')) hideLoginModal(); });
-    document.getElementById('loginPassword').addEventListener('keypress', (e) => { if(e.key === 'Enter') handleLogin(); });
-    startSakura(); if (!isAuthenticated) showLoginModal(); 
-  })();
+  document.getElementById('cancelFolderUploadBtn')?.addEventListener('click', () => {
+    if (isUploadingFiles) {
+       uploadCancelRequested = true;
+       document.getElementById('masterStatusText').innerHTML = "<i class='fas fa-exclamation-circle mr-3 text-red-400'></i>Cancelling upload...";
+       document.getElementById('cancelFolderUploadBtn').innerText = "Cancelling...";
+       document.getElementById('cancelFolderUploadBtn').disabled = true;
+    } else {
+       document.getElementById('uploadFolderModal').classList.remove('active'); 
+       pendingUploadFiles = null; 
+       selectedUploadFolder = null; 
+    }
+  });
+  
+  function renderBreadcrumb() {
+    const container = document.getElementById('breadcrumbContainer');
+    let crumbs = [];
+    let current = folders.find(f => f.id === currentFolderId);
+    while (current) { crumbs.unshift(current); current = folders.find(f => f.id === current.parent_id); }
+    container.innerHTML = `<div class="breadcrumb-item-liquid" data-folder-id="null"><i class="fas fa-home mr-2 text-gray-500"></i>Home</div>` + crumbs.map(f => `<i class="fas fa-chevron-right text-xs text-gray-600"></i><div class="breadcrumb-item-liquid" data-folder-id="${f.id}">${escapeHtml(f.name)}</div>`).join('');
+    container.querySelectorAll('.breadcrumb-item-liquid').forEach(el => { el.addEventListener('click', () => navigateToFolder(el.dataset.folderId === 'null' ? null : el.dataset.folderId)); });
+  }
+  
+  function navigateToFolder(folderId) { currentFolderId = folderId; currentSearchQuery = ''; document.getElementById('searchInput').value = ''; renderContent(); renderBreadcrumb(); }
+  
+  function sortFiles(filesList) {
+    const sorted = [...filesList];
+    return sorted.sort((a,b) => b.uploaded_at - a.uploaded_at);
+  }
+  
+  function selectAllItems() { const container = document.getElementById('contentGrid'); const checkboxes = container.querySelectorAll('.selection-checkbox-liquid'); checkboxes.forEach(checkbox => { if (!checkbox.checked) { checkbox.checked = true; const card = checkbox.closest('.card-liquid'); const id = card.dataset.id; const type = card.dataset.type; const name = card.dataset.name; const storagePath = card.dataset.storagePath; selectedItems.set(id, { type, name, storagePath }); card.classList.add('selected'); } }); updateBulkBar(); updateHeaderSelectAll(); }
+  function deselectAllItems() { const container = document.getElementById('contentGrid'); const checkboxes = container.querySelectorAll('.selection-checkbox-liquid'); checkboxes.forEach(checkbox => { if (checkbox.checked) { checkbox.checked = false; const card = checkbox.closest('.card-liquid'); const id = card.dataset.id; selectedItems.delete(id); card.classList.remove('selected'); } }); updateBulkBar(); updateHeaderSelectAll(); }
+  
+  function updateHeaderSelectAll() { 
+    const headerCheckbox = document.getElementById('headerSelectAll'); 
+    if (!headerCheckbox) return;
+    const container = document.getElementById('contentGrid'); 
+    const checkboxes = container.querySelectorAll('.selection-checkbox-liquid'); 
+    const total = checkboxes.length; 
+    const checked = Array.from(checkboxes).filter(cb => cb.checked).length; 
+    if (total === 0) { headerCheckbox.checked = false; headerCheckbox.indeterminate = false; } else if (checked === total) { headerCheckbox.checked = true; headerCheckbox.indeterminate = false; } else if (checked > 0 && checked < total) { headerCheckbox.indeterminate = true; } else { headerCheckbox.checked = false; headerCheckbox.indeterminate = false; } 
+  }
+  
+  function updateBulkBar() { const bar = document.getElementById('bulkBar'); const count = selectedItems.size; if (count > 0) { bar.style.display = 'flex'; document.getElementById('selectedCount').innerHTML = `${count} selected`; } else { bar.style.display = 'none'; } updateHeaderSelectAll(); }
+  
+  async function renderContent() {
+    if (!isAuthenticated) { document.getElementById('contentGrid').innerHTML = '<div class="col-span-full flex flex-col items-center justify-center py-32"><div class="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6"><i class="fas fa-lock text-4xl text-gray-500"></i></div><p class="text-gray-400 font-medium">Please authenticate to access the vault</p></div>'; return; }
+    if (isLoading) return;
+    isLoading = true;
+    
+    const selectAllContainer = document.getElementById('selectAllHeader');
+    if (selectAllContainer) {
+      if (currentFolderId === null) {
+        selectAllContainer.classList.add('hidden');
+        selectAllContainer.classList.remove('flex');
+      } else {
+        selectAllContainer.classList.remove('hidden');
+        selectAllContainer.classList.add('flex');
+      }
+    }
+
+    const grid = document.getElementById('contentGrid');
+    const skeletonHtml = currentView === 'grid' ? '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">' + Array(8).fill(0).map(() => '<div class="skeleton-liquid h-56"></div>').join('') + '</div>' : '<div class="space-y-4">' + Array(5).fill(0).map(() => '<div class="skeleton-liquid h-20"></div>').join('') + '</div>';
+    grid.innerHTML = skeletonHtml;
+    await loadFolders();
+    await loadFiles();
+    let displayFolders = folders.filter(f => f.parent_id === currentFolderId);
+    let displayFiles = files.filter(f => f.folder_id === currentFolderId);
+    
+    if (currentSearchQuery) { const query = currentSearchQuery.toLowerCase(); displayFolders = displayFolders.filter(f => f.name.toLowerCase().includes(query)); displayFiles = displayFiles.filter(f => f.name.toLowerCase().includes(query)); }
+    displayFiles = sortFiles(displayFiles);
+    document.getElementById('folderCount').innerHTML = displayFolders.length;
+    document.getElementById('fileCount').innerHTML = displayFiles.length;
+    const totalSize = files.reduce((sum, f) => sum + (f.size || 0), 0);
+    const percent = (totalSize / MAX_BYTES) * 100;
+    document.getElementById('storageFillBar').style.width = `${Math.min(percent, 100)}%`;
+    document.getElementById('storagePercent').innerHTML = `${Math.min(percent, 100).toFixed(1)}%`;
+    document.getElementById('storageUsedText').innerHTML = `${(totalSize / (1024*1024)).toFixed(2)} MB`;
+    if (displayFolders.length === 0 && displayFiles.length === 0) { grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-24"><div class="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6"><i class="fas fa-folder-open text-4xl text-gray-600"></i></div><p class="text-gray-400 font-medium">${currentSearchQuery ? 'No matching results found' : 'This folder is empty'}</p></div>`; isLoading = false; return; }
+    const admin = isAdmin();
+    const container = document.getElementById('contentGrid');
+    container.className = currentView === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6' : 'list-view space-y-4';
+    let html = '';
+    for (let folder of displayFolders) {
+      const safeName = escapeHtml(folder.name);
+      const isSelected = selectedItems.has(folder.id);
+      html += `<div class="card-liquid ${isSelected ? 'selected' : ''}" data-id="${folder.id}" data-type="folder" data-name="${escapeHtml(folder.name)}">${admin ? `<input type="checkbox" class="selection-checkbox-liquid" ${isSelected ? 'checked' : ''}>` : ''}<div class="${currentView === 'grid' ? 'text-center p-6' : 'card-content p-4'}" style="${currentView === 'list' ? 'display: flex; align-items: center; gap: 16px;' : ''}"><div class="card-icon"><i class="fas fa-folder text-5xl text-blue-400/80 drop-shadow-md"></i></div><div class="card-details flex-1"><p class="font-medium text-white truncate text-base mt-4" title="${safeName}">${safeName}</p><p class="text-xs text-gray-500 font-medium mt-1">Folder</p></div>${currentView === 'grid' && admin ? `<div class="card-actions flex gap-2 mt-5 pt-4 border-t border-white/5"><button class="move-btn flex-1 py-2.5 rounded-lg action-btn-liquid text-xs font-medium"><i class="fas fa-exchange-alt mr-1"></i>Move</button><button class="rename-btn flex-1 py-2.5 rounded-lg action-btn-liquid text-xs font-medium"><i class="fas fa-pencil-alt mr-1"></i>Edit</button><button class="delete-btn flex-1 py-2.5 rounded-lg action-btn-liquid danger text-xs font-medium"><i class="fas fa-trash"></i></button></div>` : ''}</div>${currentView === 'list' && admin ? `<div class="card-actions flex gap-2 mr-3"><button class="move-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-exchange-alt"></i></button><button class="rename-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-pencil-alt"></i></button><button class="delete-btn w-9 h-9 rounded-full action-btn-liquid danger flex items-center justify-center"><i class="fas fa-trash"></i></button></div>` : ''}</div>`;
+    }
+    for (let file of displayFiles) {
+      const category = getFileCategory(file.type, file.name);
+      const icon = category === 'image' ? 'fa-image' : category === 'video' ? 'fa-video' : category === 'audio' ? 'fa-music' : 'fa-file-alt';
+      let iconColor = 'text-purple-400/80';
+      if(category === 'image') iconColor = 'text-green-400/80';
+      if(category === 'video') iconColor = 'text-pink-400/80';
+      if(category === 'audio') iconColor = 'text-yellow-400/80';
+
+      const safeName = escapeHtml(file.name);
+      const isSelected = selectedItems.has(file.id);
+      const thumbnailUrl = category === 'image' ? `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${file.storage_path}` : null;
+      html += `<div class="card-liquid ${isSelected ? 'selected' : ''}" data-id="${file.id}" data-type="file" data-name="${escapeHtml(file.name)}" data-storage-path="${file.storage_path}">${admin ? `<input type="checkbox" class="selection-checkbox-liquid" ${isSelected ? 'checked' : ''}>` : ''}<div class="${currentView === 'grid' ? 'text-center p-6' : 'card-content p-4'}" style="${currentView === 'list' ? 'display: flex; align-items: center; gap: 16px;' : ''}"><div class="card-icon">${category === 'image' && thumbnailUrl ? `<img src="${thumbnailUrl}" class="file-thumbnail w-16 h-16 object-cover rounded-xl mt-1">` : `<i class="fas ${icon} text-4xl ${iconColor} drop-shadow-md mt-2"></i>`}</div><div class="card-details flex-1"><p class="font-medium text-gray-200 text-sm truncate mt-4" title="${safeName}">${safeName}</p><p class="text-xs text-gray-500 font-medium mt-1 capitalize">${formatBytes(file.size)} • ${category}</p></div>${currentView === 'grid' ? `<div class="card-actions flex gap-2 mt-5 pt-4 border-t border-white/5"><button class="download-btn flex-1 py-2.5 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all text-xs font-medium"><i class="fas fa-download mr-1"></i>Get</button>${admin ? `<button class="move-btn flex-1 py-2.5 rounded-lg action-btn-liquid text-xs font-medium"><i class="fas fa-exchange-alt"></i></button><button class="rename-btn flex-1 py-2.5 rounded-lg action-btn-liquid text-xs font-medium"><i class="fas fa-pencil-alt"></i></button><button class="delete-btn flex-1 py-2.5 rounded-lg action-btn-liquid danger text-xs font-medium"><i class="fas fa-trash"></i></button>` : ''}</div>` : ''}</div>${currentView === 'list' ? `<div class="card-actions flex gap-2 mr-3"><button class="download-btn w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center"><i class="fas fa-download"></i></button>${admin ? `<button class="move-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-exchange-alt"></i></button><button class="rename-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-pencil-alt"></i></button><button class="delete-btn w-9 h-9 rounded-full action-btn-liquid danger flex items-center justify-center"><i class="fas fa-trash"></i></button>` : ''}</div>` : ''}</div>`;
+    }
+    container.innerHTML = html;
+    container.querySelectorAll('.card-liquid').forEach(card => {
+      const id = card.dataset.id;
+      const type = card.dataset.type;
+      const name = card.dataset.name;
+      const storagePath = card.dataset.storagePath;
+      if (type === 'folder') { const contentDiv = card.querySelector('.card-content') || card.querySelector('.text-center'); contentDiv?.addEventListener('click', (e) => { if (e.target.type !== 'checkbox') navigateToFolder(id); }); } else { const file = files.find(f => f.id === id); const contentDiv = card.querySelector('.card-content') || card.querySelector('.text-center'); if (file) { contentDiv?.addEventListener('click', () => showLightbox(file)); } }
+      const checkbox = card.querySelector('.selection-checkbox-liquid');
+      if (checkbox) { checkbox.addEventListener('change', (e) => { e.stopPropagation(); if (checkbox.checked) { selectedItems.set(id, { type, name, storagePath }); card.classList.add('selected'); } else { selectedItems.delete(id); card.classList.remove('selected'); } updateBulkBar(); updateHeaderSelectAll(); }); }
+      card.querySelector('.download-btn')?.addEventListener('click', (e) => { e.stopPropagation(); downloadFile(storagePath, name); });
+      card.querySelector('.move-btn')?.addEventListener('click', (e) => { e.stopPropagation(); movePrompt(id, type, name); });
+      card.querySelector('.rename-btn')?.addEventListener('click', (e) => { e.stopPropagation(); renamePrompt(id, type, name); });
+      card.querySelector('.delete-btn')?.addEventListener('click', (e) => { e.stopPropagation(); confirmDeleteItem(id, type, name, storagePath); });
+      card.addEventListener('contextmenu', (e) => { e.preventDefault(); showContextMenu(e, id, type, name, storagePath); });
+    });
+    updateHeaderSelectAll();
+    isLoading = false;
+  }
+  
+  function showContextMenu(e, id, type, name, storagePath = '') { if (!isAdmin()) return; e.preventDefault(); const existing = document.querySelector('.context-menu-liquid'); if (existing) existing.remove(); if (activeContextMenuClose) document.removeEventListener('click', activeContextMenuClose); const menu = document.createElement('div'); menu.className = 'context-menu-liquid absolute bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[5000] min-w-[160px] p-2'; menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px'; menu.innerHTML = `<div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="rename"><i class="fas fa-pencil-alt w-5 text-gray-400"></i> Rename</div><div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="move"><i class="fas fa-exchange-alt w-5 text-gray-400"></i> Move</div><div class="h-px bg-white/10 my-1 mx-2"></div><div class="px-4 py-2.5 hover:bg-red-500/20 cursor-pointer text-red-400 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="delete"><i class="fas fa-trash-alt w-5"></i> Delete</div>`; document.body.appendChild(menu); const closeMenu = () => { menu.remove(); document.removeEventListener('click', closeMenu); activeContextMenuClose = null; }; menu.querySelector('[data-action="rename"]').onclick = () => { renamePrompt(id, type, name); closeMenu(); }; menu.querySelector('[data-action="move"]').onclick = () => { movePrompt(id, type, name); closeMenu(); }; menu.querySelector('[data-action="delete"]').onclick = () => { confirmDeleteItem(id, type, name, storagePath); closeMenu(); }; activeContextMenuClose = closeMenu; setTimeout(() => document.addEventListener('click', closeMenu), 10); }
+  function renamePrompt(id, type, oldName) { const newName = prompt('Enter new name:', oldName); if (!newName || newName === oldName) return; if (type === 'folder') renameFolder(id, newName); else renameFile(id, newName); }
+  function movePrompt(id, type, name) { if (!isAdmin()) { showToast("Admin access required", true); return; } currentContextItem = { id, type, name, isBulk: false }; document.getElementById('movingItemName').innerHTML = `Moving: <strong class="text-blue-400 font-medium">${escapeHtml(name)}</strong>`; renderFolderTree(); document.getElementById('moveFileModal').classList.add('active'); }
+  async function renderFolderTree() { const container = document.getElementById('folderTree'); await loadFolders(); let treeHtml = `<div class="folder-tree-item-liquid selected" data-folder-id="null"><i class="fas fa-home mr-3 text-blue-400"></i>Home Directory</div>`; function renderTree(items, level) { let html = ''; for (let item of items) { if (currentContextItem && !currentContextItem.isBulk && currentContextItem.id === item.id) continue; html += `<div class="folder-tree-item-liquid" style="margin-left: ${level * 20}px" data-folder-id="${item.id}"><i class="fas fa-folder mr-3 text-gray-500"></i>${escapeHtml(item.name)}</div>`; const children = folders.filter(f => f.parent_id === item.id); if (children.length) html += renderTree(children, level + 1); } return html; } const rootFolders = folders.filter(f => f.parent_id === null); treeHtml += renderTree(rootFolders, 1); container.innerHTML = treeHtml; container.querySelectorAll('.folder-tree-item-liquid').forEach(el => { el.addEventListener('click', async (e) => { e.stopPropagation(); const targetId = el.dataset.folderId === 'null' ? null : el.dataset.folderId; if (currentContextItem) { if (currentContextItem.isBulk) { for (let i = 0; i < currentContextItem.ids.length; i++) { await moveToFolder(currentContextItem.ids[i], currentContextItem.types[i], targetId); } selectedItems.clear(); updateBulkBar(); } else { await moveToFolder(currentContextItem.id, currentContextItem.type, targetId); } document.getElementById('moveFileModal').classList.remove('active'); currentContextItem = null; } container.querySelectorAll('.folder-tree-item-liquid').forEach(item => item.classList.remove('selected')); el.classList.add('selected'); }); }); }
+  function confirmDeleteItem(id, type, name, storagePath = '') { if (!isAdmin()) { showToast("Admin access required", true); return; } currentContextItem = { id, type, name, storagePath }; document.getElementById('deleteConfirmMsg').innerHTML = `Delete "<span class="text-gray-200 font-medium">${escapeHtml(name)}</span>"?`; document.getElementById('deleteConfirmModal').classList.add('active'); }
+  async function executeDelete() { if (!currentContextItem) return; if (currentContextItem.type === 'folder') { await deleteFolder(currentContextItem.id, currentContextItem.name); } else { await deleteFile(currentContextItem.id, currentContextItem.storagePath, currentContextItem.name); } document.getElementById('deleteConfirmModal').classList.remove('active'); currentContextItem = null; }
+  
+  function showLoginModal() { document.getElementById('loginModal').classList.add('active'); }
+  function hideLoginModal() { document.getElementById('loginModal').classList.remove('active'); }
+  function handleLogin() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const user = USERS[username];
+    if (user && user.passwordHash === btoa(password)) {
+      isAuthenticated = true;
+      currentUserRole = user.role;
+      sessionStorage.setItem('vault_auth', 'true');
+      sessionStorage.setItem('user_role', currentUserRole);
+      hideLoginModal();
+      updateUIForAuthState();
+      loadFolders().then(() => renderContent());
+      loadFiles();
+      addActivityLog('login', username, 'authenticated');
+      showToast(`Welcome back, ${username}.`);
+    } else { showToast("Authentication failed", true); }
+  }
+  function handleLogout() { isAuthenticated = false; currentUserRole = null; currentFolderId = null; selectedItems.clear(); sessionStorage.removeItem('vault_auth'); sessionStorage.removeItem('user_role'); updateUIForAuthState(); document.getElementById('contentGrid').innerHTML = '<div class="col-span-full flex flex-col items-center justify-center py-32"><div class="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6"><i class="fas fa-lock text-4xl text-gray-500"></i></div><p class="text-gray-400 font-medium">Please authenticate to access the vault</p></div>'; addActivityLog('logout', '', 'signed out'); showToast("Signed out"); showLoginModal(); }
+  function updateUIForAuthState() {
+    const uploadLabel = document.getElementById('uploadLabel');
+    const directoryLabel = document.getElementById('directoryLabel');
+    const logoutBtn = document.getElementById('logoutHeaderBtn');
+    const createFolderBtn = document.getElementById('createFolderHeaderBtn');
+    const roleBadge = document.getElementById('roleBadge');
+    const permissionText = document.getElementById('permissionText');
+    if (isAuthenticated) {
+      const admin = isAdmin();
+      uploadLabel.classList.remove('opacity-50', 'pointer-events-none');
+      directoryLabel.classList.remove('opacity-50', 'pointer-events-none');
+      logoutBtn.classList.remove('hidden');
+      createFolderBtn.classList.remove('hidden');
+      if (admin) {
+        roleBadge.innerHTML = '<i class="fas fa-shield-alt mr-2 text-blue-400"></i>ADMINISTRATOR';
+        permissionText.innerHTML = '<i class="fas fa-check-circle text-green-400 mr-2"></i> Admin Privileges Active';
+      } else {
+        createFolderBtn.classList.add('hidden');
+        roleBadge.innerHTML = '<i class="fas fa-eye mr-2 text-purple-400"></i>VIEWER';
+        permissionText.innerHTML = '<i class="fas fa-lock text-gray-400 mr-2"></i> View Only Access';
+      }
+      roleBadge.classList.remove('hidden');
+    } else {
+      uploadLabel.classList.add('opacity-50', 'pointer-events-none');
+      directoryLabel.classList.add('opacity-50', 'pointer-events-none');
+      logoutBtn.classList.add('hidden');
+      createFolderBtn.classList.add('hidden');
+      roleBadge.classList.add('hidden');
+      permissionText.innerHTML = '<i class="fas fa-lock text-gray-600"></i> Authentication Required';
+    }
+  }
+  
+  // Anti-Inspection Roadblocks
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'F12' || 
+       (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
+       (e.ctrlKey && (e.key === 'U' || e.key === 'S'))) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+  document.getElementById('loginPassword')?.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => { if (e.key === '/' || (e.ctrlKey && e.key === 'f')) { e.preventDefault(); document.getElementById('searchInput').focus(); } if (e.key === 'Delete' && selectedItems.size > 0) { if (confirm(`Delete ${selectedItems.size} items?`)) document.getElementById('bulkDeleteBtn').click(); } if (e.key === 'Escape') { document.querySelectorAll('.modal-overlay.active').forEach(modal => modal.classList.remove('active')); document.getElementById('lightbox').classList.remove('active'); closeJournal(); } if (e.key === 'a' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); selectAllItems(); } });
+  
+  document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
+  document.getElementById('logoutHeaderBtn')?.addEventListener('click', handleLogout);
+  document.getElementById('showRootBtn')?.addEventListener('click', () => navigateToFolder(null));
+  document.getElementById('createFolderHeaderBtn')?.addEventListener('click', () => document.getElementById('createFolderModal').classList.add('active'));
+  document.getElementById('createFolderBtn')?.addEventListener('click', () => { const name = document.getElementById('folderNameInput').value.trim(); if (name) createFolder(name); document.getElementById('createFolderModal').classList.remove('active'); document.getElementById('folderNameInput').value = ''; });
+  document.getElementById('cancelFolderBtn')?.addEventListener('click', () => document.getElementById('createFolderModal').classList.remove('active'));
+  document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => document.getElementById('deleteConfirmModal').classList.remove('active'));
+  document.getElementById('confirmDeleteBtn')?.addEventListener('click', executeDelete);
+  document.getElementById('cancelMoveBtn')?.addEventListener('click', () => document.getElementById('moveFileModal').classList.remove('active'));
+  document.getElementById('cancelFolderUploadBtn')?.addEventListener('click', () => { document.getElementById('uploadFolderModal').classList.remove('active'); pendingUploadFiles = null; selectedUploadFolder = null; });
+  document.getElementById('confirmFolderUploadBtn')?.addEventListener('click', executeUploadWithFolder);
+  
+  document.getElementById('uploadInput')?.addEventListener('change', (e) => { if (e.target.files.length) showUploadFolderModal(Array.from(e.target.files)); e.target.value = ''; });
+  document.getElementById('directoryInput')?.addEventListener('change', (e) => { if (e.target.files.length) showUploadFolderModal(Array.from(e.target.files)); e.target.value = ''; });
+  document.getElementById('searchInput')?.addEventListener('input', (e) => { currentSearchQuery = e.target.value; renderContent(); });
+  document.getElementById('gridViewBtn')?.addEventListener('click', () => { currentView = 'grid'; document.getElementById('gridViewBtn').classList.add('active'); document.getElementById('listViewBtn').classList.remove('active'); renderContent(); });
+  document.getElementById('listViewBtn')?.addEventListener('click', () => { currentView = 'list'; document.getElementById('listViewBtn').classList.add('active'); document.getElementById('gridViewBtn').classList.remove('active'); renderContent(); });
+  
+  document.getElementById('headerSelectAll')?.addEventListener('change', (e) => { if (e.target.checked) selectAllItems(); else deselectAllItems(); });
+  document.getElementById('selectAllBtn')?.addEventListener('click', () => { const headerCheckbox = document.getElementById('headerSelectAll'); if (headerCheckbox.checked) deselectAllItems(); else selectAllItems(); });
+  document.getElementById('bulkMoveBtn')?.addEventListener('click', async () => { if (selectedItems.size === 0) return; currentContextItem = { ids: Array.from(selectedItems.keys()), types: Array.from(selectedItems.values()).map(v => v.type), isBulk: true }; renderFolderTree(); document.getElementById('moveFileModal').classList.add('active'); updateBulkBar(); });
+  document.getElementById('bulkDeleteBtn')?.addEventListener('click', async () => { if (selectedItems.size === 0) return; if (!confirm(`Delete ${selectedItems.size} items?`)) return; for (let [id, item] of selectedItems) { if (item.type === 'folder') await deleteFolder(id, item.name); else await deleteFile(id, item.storagePath, item.name); } selectedItems.clear(); updateBulkBar(); await renderContent(); showToast(`Deleted ${selectedItems.size} items`); });
+  document.getElementById('bulkCancelBtn')?.addEventListener('click', () => { deselectAllItems(); });
+  document.getElementById('journalBtn')?.addEventListener('click', openJournal);
+  
+  (async function() { const { createClient } = window.supabase; supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY); setupDragAndDrop(); const savedAuth = sessionStorage.getItem('vault_auth'); const savedRole = sessionStorage.getItem('user_role'); if (savedAuth === 'true' && savedRole) { isAuthenticated = true; currentUserRole = savedRole; updateUIForAuthState(); await loadFolders(); await loadFiles(); await renderContent(); renderBreadcrumb(); } else { isAuthenticated = false; currentUserRole = null; updateUIForAuthState(); renderContent(); } })();
 </script>
 </body>
 </html>
