@@ -403,7 +403,7 @@
 
 <div id="lightbox" class="lightbox-liquid">
   <div class="lightbox-content relative">
-    <div class="lightbox-close absolute -top-16 right-0 bg-white/10 border border-white/20 rounded-full w-12 h-12 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all backdrop-blur-md" onclick="closeLightbox()">
+    <div class="lightbox-close absolute -top-16 right-0 bg-white/10 border border-white/20 rounded-full w-12 h-12 flex items-center justify-center cursor-pointer hover:bg-white/20 transition-all backdrop-blur-md z-50" onclick="closeLightbox()">
       <i class="fas fa-times text-white text-xl"></i>
     </div>
     <div id="lightboxImage"></div>
@@ -457,11 +457,13 @@
       
       <div class="w-px h-8 bg-white/10 mx-1"></div>
       
-      <button id="createFolderHeaderBtn" class="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 text-sm font-medium transition-all"><i class="fas fa-folder-plus mr-2 text-blue-400"></i>New Folder</button>
+      <button id="createNoteHeaderBtn" class="px-5 py-2.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 hover:bg-blue-500/30 text-sm font-medium transition-all hidden"><i class="fas fa-pen-nib mr-2"></i>New Note</button>
+      <button id="createFolderHeaderBtn" class="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 text-sm font-medium transition-all hidden"><i class="fas fa-folder-plus mr-2 text-blue-400"></i>New Folder</button>
       <label for="uploadInput" id="uploadLabel" class="cursor-pointer px-6 py-2.5 rounded-full btn-liquid opacity-50 pointer-events-none text-sm"><i class="fas fa-cloud-upload-alt mr-2"></i> Upload Files</label>
       <input type="file" id="uploadInput" multiple class="hidden">
       <label for="directoryInput" id="directoryLabel" class="cursor-pointer px-6 py-2.5 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all opacity-50 pointer-events-none text-sm shadow-lg"><i class="fas fa-folder-open mr-2 text-purple-400"></i> Upload Folder</label>
       <input type="file" id="directoryInput" webkitdirectory directory multiple class="hidden">
+      
       <button id="logoutHeaderBtn" class="px-5 py-2.5 rounded-full border border-white/10 text-gray-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 text-sm font-medium transition-all hidden"><i class="fas fa-sign-out-alt mr-2"></i>Sign Out</button>
     </div>
   </div>
@@ -533,6 +535,26 @@
       <input type="password" id="loginPassword" placeholder="Password" class="input-liquid">
     </div>
     <button id="loginBtn" class="w-full py-4 rounded-xl btn-liquid text-base shadow-[0_10px_20px_rgba(37,99,235,0.3)]">Authenticate <i class="fas fa-arrow-right ml-2 text-sm opacity-70"></i></button>
+  </div>
+</div>
+
+<div id="createNoteModal" class="modal-overlay">
+  <div class="modal-liquid p-8 max-w-2xl w-full">
+    <div class="flex items-center gap-4 mb-8">
+      <div class="w-12 h-12 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+        <i class="fas fa-file-signature text-xl text-green-400"></i>
+      </div>
+      <div>
+        <h3 class="text-2xl font-semibold text-white">Draft Note</h3>
+        <p class="text-gray-400 text-sm mt-1">Creates a text file in the current directory</p>
+      </div>
+    </div>
+    <input type="text" id="noteTitleInput" placeholder="Note Title (e.g., Ideas.txt)" class="input-liquid mb-4 font-medium">
+    <textarea id="noteContentInput" rows="8" placeholder="Start writing your note here..." class="input-liquid mb-8 resize-none leading-relaxed text-sm"></textarea>
+    <div class="flex gap-4">
+      <button id="cancelNoteBtn" class="flex-1 px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 font-medium transition-all">Cancel</button>
+      <button id="saveNoteBtn" class="flex-1 px-5 py-3.5 rounded-xl btn-liquid font-medium shadow-[0_10px_20px_rgba(37,99,235,0.3)]">Save Note</button>
+    </div>
   </div>
 </div>
 
@@ -684,6 +706,7 @@
       if(log.action === 'delete') { icon = 'fa-trash-alt'; color = 'text-red-400'; bg = 'bg-red-500/10'; }
       if(log.action === 'move') { icon = 'fa-exchange-alt'; color = 'text-purple-400'; bg = 'bg-purple-500/10'; }
       if(log.action === 'create') { icon = 'fa-folder-plus'; color = 'text-cyan-400'; bg = 'bg-cyan-500/10'; }
+      if(log.action === 'edit') { icon = 'fa-pencil-alt'; color = 'text-yellow-400'; bg = 'bg-yellow-500/10'; }
       
       return `
       <div class="journal-entry flex items-center gap-4">
@@ -782,15 +805,51 @@
         if (error) throw error;
         const textData = await data.text();
         const safeClickName = escapeHtml(file.name).replace(/'/g, "\\'");
+        
         container.innerHTML = `
-          <div class="bg-gray-900/90 backdrop-blur-xl text-gray-300 p-8 rounded-2xl max-w-5xl max-h-[85vh] overflow-auto shadow-2xl w-[90vw] md:w-[75vw] text-left border border-white/10">
-            <h4 class="text-white mb-6 border-b border-white/10 pb-4 flex justify-between items-center sticky top-0 bg-gray-900/95 backdrop-blur pt-2 z-10">
+          <div class="bg-gray-900/95 backdrop-blur-2xl text-gray-300 p-8 rounded-2xl max-w-5xl h-[85vh] w-[90vw] md:w-[75vw] text-left border border-white/10 flex flex-col shadow-2xl">
+            <h4 class="text-white mb-6 border-b border-white/10 pb-4 flex justify-between items-center shrink-0">
               <span class="font-medium text-blue-400 flex items-center"><i class="fas fa-file-code mr-3 text-white/50"></i>${escapeHtml(file.name)}</span>
-              <button onclick="downloadFileDirect('${file.storage_path}', '${safeClickName}')" class="text-white text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all border border-white/10"><i class="fas fa-download mr-2"></i> Download Source</button>
+              <div class="flex gap-3">
+                <button id="saveTextEditsBtn" class="text-white text-xs bg-green-500/20 hover:bg-green-500 hover:text-white text-green-400 px-4 py-2 rounded-lg transition-all border border-green-500/30"><i class="fas fa-save mr-2"></i> Save Edits</button>
+                <button onclick="downloadFileDirect('${file.storage_path}', '${safeClickName}')" class="text-white text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all border border-white/10"><i class="fas fa-download mr-2"></i> Download</button>
+              </div>
             </h4>
-            <pre><code class="text-sm font-mono whitespace-pre-wrap leading-relaxed text-gray-400">${escapeHtml(textData)}</code></pre>
+            <textarea id="liveTextEditor" class="flex-1 w-full bg-black/40 border border-white/5 rounded-xl p-5 text-sm font-mono text-gray-300 focus:outline-none focus:border-blue-500/50 resize-none shadow-inner leading-relaxed" spellcheck="false">${escapeHtml(textData)}</textarea>
           </div>
         `;
+        
+        document.getElementById('saveTextEditsBtn').onclick = async () => {
+          const btn = document.getElementById('saveTextEditsBtn');
+          const newContent = document.getElementById('liveTextEditor').value;
+          const blob = new Blob([newContent], { type: file.type || 'text/plain' });
+          
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+          btn.disabled = true;
+          
+          try {
+            const { error: uploadError } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(file.storage_path, blob, { upsert: true, contentType: file.type || 'text/plain' });
+            if (uploadError) throw uploadError;
+            
+            await supabaseClient.from(TABLE_NAME).update({ size: blob.size }).eq('id', file.id);
+            
+            showToast('Note updated successfully!', false);
+            btn.innerHTML = '<i class="fas fa-check mr-2"></i> Saved';
+            addActivityLog('edit', file.name, 'text file updated');
+            
+            loadFiles().then(() => { if(currentView) renderContent(); });
+            
+            setTimeout(() => {
+              btn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Edits';
+              btn.disabled = false;
+            }, 2000);
+            
+          } catch (err) {
+            showToast(`Save failed: ${err.message}`, true);
+            btn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Edits';
+            btn.disabled = false;
+          }
+        };
       } catch (e) {
         container.innerHTML = `<div class="text-center text-white"><p class="text-red-400"><i class="fas fa-exclamation-triangle mb-3 text-4xl"></i><br>Failed to read file contents.</p></div>`;
       }
@@ -848,6 +907,38 @@
       showToast(`📁 Folder "${name}" created`);
       return true;
     } catch(e) { showToast(`Failed: ${e.message}`, true); return false; }
+  }
+
+  async function createTextNote(title, content) {
+    if (!isAuthenticated) return;
+    if (!title) title = 'Untitled Note';
+    if (!title.toLowerCase().endsWith('.txt')) title += '.txt';
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const file = new File([blob], title, { type: 'text/plain' });
+    
+    showToast(`Saving note "${title}"...`);
+    document.getElementById('createNoteModal').classList.remove('active');
+    
+    try {
+      const fileId = generateUUID();
+      const storagePath = `${fileId}.txt`;
+      
+      const { error: uploadError } = await supabaseClient.storage.from(STORAGE_BUCKET).upload(storagePath, file, { contentType: 'text/plain' });
+      if (uploadError) throw uploadError;
+      
+      const { error: dbError } = await supabaseClient.from(TABLE_NAME).insert({
+        id: fileId, name: title, size: file.size, type: 'text/plain', storage_path: storagePath, uploaded_at: Date.now(), folder_id: currentFolderId, is_folder: false
+      });
+      if (dbError) throw dbError;
+      
+      addActivityLog('create', title, 'note saved');
+      showToast(`Note saved successfully!`);
+      await loadFiles();
+      await renderContent();
+    } catch (err) {
+      showToast(`Error saving note: ${err.message}`, true);
+    }
   }
   
   async function deleteFolder(folderId, folderName) {
@@ -1314,6 +1405,7 @@
     const directoryLabel = document.getElementById('directoryLabel');
     const logoutBtn = document.getElementById('logoutHeaderBtn');
     const createFolderBtn = document.getElementById('createFolderHeaderBtn');
+    const createNoteBtn = document.getElementById('createNoteHeaderBtn');
     const roleBadge = document.getElementById('roleBadge');
     const permissionText = document.getElementById('permissionText');
     if (isAuthenticated) {
@@ -1322,13 +1414,14 @@
       directoryLabel.classList.remove('opacity-50', 'pointer-events-none');
       logoutBtn.classList.remove('hidden');
       createFolderBtn.classList.remove('hidden');
+      createNoteBtn.classList.remove('hidden');
+      
       if (admin) {
         roleBadge.innerHTML = '<i class="fas fa-shield-alt mr-2 text-blue-400"></i>ADMINISTRATOR';
         permissionText.innerHTML = '<i class="fas fa-check-circle text-green-400 mr-2"></i> Admin Privileges Active';
       } else {
-        createFolderBtn.classList.add('hidden');
         roleBadge.innerHTML = '<i class="fas fa-eye mr-2 text-purple-400"></i>VIEWER';
-        permissionText.innerHTML = '<i class="fas fa-lock text-gray-400 mr-2"></i> View Only Access';
+        permissionText.innerHTML = '<i class="fas fa-unlock-alt text-cyan-400 mr-2"></i> Viewer: Create & Upload Access';
       }
       roleBadge.classList.remove('hidden');
     } else {
@@ -1336,6 +1429,7 @@
       directoryLabel.classList.add('opacity-50', 'pointer-events-none');
       logoutBtn.classList.add('hidden');
       createFolderBtn.classList.add('hidden');
+      createNoteBtn.classList.add('hidden');
       roleBadge.classList.add('hidden');
       permissionText.innerHTML = '<i class="fas fa-lock text-gray-600"></i> Authentication Required';
     }
@@ -1363,6 +1457,17 @@
   document.getElementById('loginBtn')?.addEventListener('click', handleLogin);
   document.getElementById('logoutHeaderBtn')?.addEventListener('click', handleLogout);
   document.getElementById('showRootBtn')?.addEventListener('click', () => navigateToFolder(null));
+  
+  document.getElementById('createNoteHeaderBtn')?.addEventListener('click', () => document.getElementById('createNoteModal').classList.add('active'));
+  document.getElementById('cancelNoteBtn')?.addEventListener('click', () => { document.getElementById('createNoteModal').classList.remove('active'); document.getElementById('noteTitleInput').value = ''; document.getElementById('noteContentInput').value = ''; });
+  document.getElementById('saveNoteBtn')?.addEventListener('click', () => {
+    const title = document.getElementById('noteTitleInput').value.trim();
+    const content = document.getElementById('noteContentInput').value;
+    createTextNote(title, content);
+    document.getElementById('noteTitleInput').value = ''; 
+    document.getElementById('noteContentInput').value = '';
+  });
+
   document.getElementById('createFolderHeaderBtn')?.addEventListener('click', () => document.getElementById('createFolderModal').classList.add('active'));
   document.getElementById('createFolderBtn')?.addEventListener('click', () => { const name = document.getElementById('folderNameInput').value.trim(); if (name) createFolder(name); document.getElementById('createFolderModal').classList.remove('active'); document.getElementById('folderNameInput').value = ''; });
   document.getElementById('cancelFolderBtn')?.addEventListener('click', () => document.getElementById('createFolderModal').classList.remove('active'));
