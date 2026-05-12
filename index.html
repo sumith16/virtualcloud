@@ -381,6 +381,16 @@
     .progress-bar { flex: 1; height: 6px; background: rgba(255,255,255,0.2); border-radius: 100px; cursor: pointer; overflow: hidden; }
     .progress-fill { height: 100%; background: #3b82f6; width: 0%; border-radius: 100px; }
     .time-display { color: #d1d5db; font-size: 12px; font-weight: 500; }
+
+    /* Animated Copy Feedback */
+    @keyframes copyPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.2); color: #10b981; }
+      100% { transform: scale(1); }
+    }
+    .copy-success i {
+      animation: copyPulse 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
   </style>
 </head>
 <body>
@@ -510,8 +520,8 @@
         <i class="fas fa-search absolute left-5 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors"></i>
         <input type="text" id="searchInput" placeholder="Search your vault..." class="input-liquid pl-12 shadow-inner">
         <div class="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-           <span class="px-2 py-1 bg-black/40 border border-white/10 rounded text-[10px] text-gray-400 font-medium">⌘</span>
-           <span class="px-2 py-1 bg-black/40 border border-white/10 rounded text-[10px] text-gray-400 font-medium">F</span>
+            <span class="px-2 py-1 bg-black/40 border border-white/10 rounded text-[10px] text-gray-400 font-medium">⌘</span>
+            <span class="px-2 py-1 bg-black/40 border border-white/10 rounded text-[10px] text-gray-400 font-medium">F</span>
         </div>
       </div>
       
@@ -707,6 +717,7 @@
       if(log.action === 'move') { icon = 'fa-exchange-alt'; color = 'text-purple-400'; bg = 'bg-purple-500/10'; }
       if(log.action === 'create') { icon = 'fa-folder-plus'; color = 'text-cyan-400'; bg = 'bg-cyan-500/10'; }
       if(log.action === 'edit') { icon = 'fa-pencil-alt'; color = 'text-yellow-400'; bg = 'bg-yellow-500/10'; }
+      if(log.action === 'copy') { icon = 'fa-copy'; color = 'text-blue-400'; bg = 'bg-blue-500/10'; }
       
       return `
       <div class="journal-entry flex items-center gap-4">
@@ -869,8 +880,37 @@
   }
   
   function closeLightbox() { document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImage').innerHTML = ''; }
+  
   window.downloadFileDirect = async function(storagePath, fileName) { const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath); if (error) { showToast("Download failed", true); return; } const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showToast(`Downloaded ${fileName}`); };
   async function downloadFile(storagePath, fileName) { const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath); if (error) { showToast("Download failed", true); return; } const url = URL.createObjectURL(data); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); showToast(`Downloaded ${fileName}`); }
+
+  // --- NEW: Copy File Functionality ---
+  async function copyFileToClipboard(storagePath, fileName, triggerElement) {
+    try {
+      if (triggerElement) triggerElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      
+      const { data, error } = await supabaseClient.storage.from(STORAGE_BUCKET).download(storagePath);
+      if (error) throw error;
+
+      const item = new ClipboardItem({ [data.type]: data });
+      await navigator.clipboard.write([item]);
+      
+      showToast(`Copied ${fileName} to clipboard`);
+      addActivityLog('copy', fileName, 'copied to clipboard');
+
+      if (triggerElement) {
+        triggerElement.classList.add('copy-success');
+        triggerElement.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => {
+          triggerElement.classList.remove('copy-success');
+          triggerElement.innerHTML = '<i class="fas fa-copy"></i>';
+        }, 1500);
+      }
+    } catch (err) {
+      showToast(`Copy failed: Use download instead.`, true);
+      if (triggerElement) triggerElement.innerHTML = '<i class="fas fa-copy"></i>';
+    }
+  }
   
   function setupDragAndDrop() {
     const dragOverlay = document.getElementById('dragOverlay');
@@ -1352,18 +1392,66 @@
       const safeName = escapeHtml(file.name);
       const isSelected = selectedItems.has(file.id);
       const thumbnailUrl = category === 'image' ? `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${file.storage_path}` : null;
-      html += `<div class="card-liquid ${isSelected ? 'selected' : ''}" data-id="${file.id}" data-type="file" data-name="${escapeHtml(file.name)}" data-storage-path="${file.storage_path}">${admin ? `<input type="checkbox" class="selection-checkbox-liquid" ${isSelected ? 'checked' : ''}>` : ''}<div class="${currentView === 'grid' ? 'text-center p-6' : 'card-content p-4'}" style="${currentView === 'list' ? 'display: flex; align-items: center; gap: 16px;' : ''}"><div class="card-icon">${category === 'image' && thumbnailUrl ? `<img src="${thumbnailUrl}" class="file-thumbnail w-16 h-16 object-cover rounded-xl mt-1">` : `<i class="fas ${icon} text-4xl ${iconColor} drop-shadow-md mt-2"></i>`}</div><div class="card-details flex-1"><p class="font-medium text-gray-200 text-sm truncate mt-4" title="${safeName}">${safeName}</p><p class="text-xs text-gray-500 font-medium mt-1 capitalize">${formatBytes(file.size)} • ${category}</p></div>${currentView === 'grid' ? `<div class="card-actions flex gap-2 mt-5 pt-4 border-t border-white/5"><button class="download-btn flex-1 py-2.5 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all text-xs font-medium"><i class="fas fa-download mr-1"></i>Get</button>${admin ? `<button class="move-btn flex-1 py-2.5 rounded-lg action-btn-liquid text-xs font-medium"><i class="fas fa-exchange-alt"></i></button><button class="rename-btn flex-1 py-2.5 rounded-lg action-btn-liquid text-xs font-medium"><i class="fas fa-pencil-alt"></i></button><button class="delete-btn flex-1 py-2.5 rounded-lg action-btn-liquid danger text-xs font-medium"><i class="fas fa-trash"></i></button>` : ''}</div>` : ''}</div>${currentView === 'list' ? `<div class="card-actions flex gap-2 mr-3"><button class="download-btn w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center"><i class="fas fa-download"></i></button>${admin ? `<button class="move-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-exchange-alt"></i></button><button class="rename-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-pencil-alt"></i></button><button class="delete-btn w-9 h-9 rounded-full action-btn-liquid danger flex items-center justify-center"><i class="fas fa-trash"></i></button>` : ''}</div>` : ''}</div>`;
+      
+      // Grid Card with Copy Button
+      html += `
+        <div class="card-liquid ${isSelected ? 'selected' : ''}" data-id="${file.id}" data-type="file" data-name="${escapeHtml(file.name)}" data-storage-path="${file.storage_path}">
+          ${admin ? `<input type="checkbox" class="selection-checkbox-liquid" ${isSelected ? 'checked' : ''}>` : ''}
+          <div class="${currentView === 'grid' ? 'text-center p-6' : 'card-content p-4'}" style="${currentView === 'list' ? 'display: flex; align-items: center; gap: 16px;' : ''}">
+            <div class="card-icon">
+              ${category === 'image' && thumbnailUrl ? `<img src="${thumbnailUrl}" class="file-thumbnail w-16 h-16 object-cover rounded-xl mt-1">` : `<i class="fas ${icon} text-4xl ${iconColor} drop-shadow-md mt-2"></i>`}
+            </div>
+            <div class="card-details flex-1">
+              <p class="font-medium text-gray-200 text-sm truncate mt-4" title="${safeName}">${safeName}</p>
+              <p class="text-xs text-gray-500 font-medium mt-1 capitalize">${formatBytes(file.size)} • ${category}</p>
+            </div>
+            ${currentView === 'grid' ? `
+              <div class="card-actions flex gap-2 mt-5 pt-4 border-t border-white/5">
+                <button class="download-btn flex-1 py-2.5 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all text-xs font-medium"><i class="fas fa-download mr-1"></i>Get</button>
+                <button class="copy-btn w-10 h-10 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white flex items-center justify-center transition-all border border-white/5"><i class="fas fa-copy"></i></button>
+                ${admin ? `
+                  <button class="move-btn flex-1 py-2.5 rounded-lg action-btn-liquid text-xs font-medium"><i class="fas fa-exchange-alt"></i></button>
+                  <button class="delete-btn flex-1 py-2.5 rounded-lg action-btn-liquid danger text-xs font-medium"><i class="fas fa-trash"></i></button>
+                ` : ''}
+              </div>` : ''}
+          </div>
+          ${currentView === 'list' ? `
+            <div class="card-actions flex gap-2 mr-3">
+              <button class="copy-btn w-9 h-9 rounded-full bg-white/5 text-gray-400 hover:bg-white/10 flex items-center justify-center transition-all"><i class="fas fa-copy"></i></button>
+              <button class="download-btn w-9 h-9 rounded-full bg-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center"><i class="fas fa-download"></i></button>
+              ${admin ? `
+                <button class="move-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-exchange-alt"></i></button>
+                <button class="rename-btn w-9 h-9 rounded-full action-btn-liquid flex items-center justify-center"><i class="fas fa-pencil-alt"></i></button>
+                <button class="delete-btn w-9 h-9 rounded-full action-btn-liquid danger flex items-center justify-center"><i class="fas fa-trash"></i></button>
+              ` : ''}
+            </div>` : ''}
+        </div>`;
     }
     container.innerHTML = html;
+    
     container.querySelectorAll('.card-liquid').forEach(card => {
       const id = card.dataset.id;
       const type = card.dataset.type;
       const name = card.dataset.name;
       const storagePath = card.dataset.storagePath;
-      if (type === 'folder') { const contentDiv = card.querySelector('.card-content') || card.querySelector('.text-center'); contentDiv?.addEventListener('click', (e) => { if (e.target.type !== 'checkbox') navigateToFolder(id); }); } else { const file = files.find(f => f.id === id); const contentDiv = card.querySelector('.card-content') || card.querySelector('.text-center'); if (file) { contentDiv?.addEventListener('click', () => showLightbox(file)); } }
+      
+      if (type === 'folder') { 
+        const contentDiv = card.querySelector('.card-content') || card.querySelector('.text-center'); 
+        contentDiv?.addEventListener('click', (e) => { if (e.target.type !== 'checkbox') navigateToFolder(id); }); 
+      } else { 
+        const file = files.find(f => f.id === id); 
+        const contentDiv = card.querySelector('.card-content') || card.querySelector('.text-center'); 
+        if (file) { contentDiv?.addEventListener('click', (e) => { 
+          if (e.target.closest('button') || e.target.closest('input')) return;
+          showLightbox(file); 
+        }); } 
+      }
+      
       const checkbox = card.querySelector('.selection-checkbox-liquid');
       if (checkbox) { checkbox.addEventListener('change', (e) => { e.stopPropagation(); if (checkbox.checked) { selectedItems.set(id, { type, name, storagePath }); card.classList.add('selected'); } else { selectedItems.delete(id); card.classList.remove('selected'); } updateBulkBar(); updateHeaderSelectAll(); }); }
+      
       card.querySelector('.download-btn')?.addEventListener('click', (e) => { e.stopPropagation(); downloadFile(storagePath, name); });
+      card.querySelector('.copy-btn')?.addEventListener('click', (e) => { e.stopPropagation(); copyFileToClipboard(storagePath, name, e.currentTarget); });
       card.querySelector('.move-btn')?.addEventListener('click', (e) => { e.stopPropagation(); movePrompt(id, type, name); });
       card.querySelector('.rename-btn')?.addEventListener('click', (e) => { e.stopPropagation(); renamePrompt(id, type, name); });
       card.querySelector('.delete-btn')?.addEventListener('click', (e) => { e.stopPropagation(); confirmDeleteItem(id, type, name, storagePath); });
@@ -1373,7 +1461,52 @@
     isLoading = false;
   }
   
-  function showContextMenu(e, id, type, name, storagePath = '') { if (!isAdmin()) return; e.preventDefault(); const existing = document.querySelector('.context-menu-liquid'); if (existing) existing.remove(); if (activeContextMenuClose) document.removeEventListener('click', activeContextMenuClose); const menu = document.createElement('div'); menu.className = 'context-menu-liquid absolute bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[5000] min-w-[160px] p-2'; menu.style.left = e.pageX + 'px'; menu.style.top = e.pageY + 'px'; menu.innerHTML = `<div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="rename"><i class="fas fa-pencil-alt w-5 text-gray-400"></i> Rename</div><div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="move"><i class="fas fa-exchange-alt w-5 text-gray-400"></i> Move</div><div class="h-px bg-white/10 my-1 mx-2"></div><div class="px-4 py-2.5 hover:bg-red-500/20 cursor-pointer text-red-400 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="delete"><i class="fas fa-trash-alt w-5"></i> Delete</div>`; document.body.appendChild(menu); const closeMenu = () => { menu.remove(); document.removeEventListener('click', closeMenu); activeContextMenuClose = null; }; menu.querySelector('[data-action="rename"]').onclick = () => { renamePrompt(id, type, name); closeMenu(); }; menu.querySelector('[data-action="move"]').onclick = () => { movePrompt(id, type, name); closeMenu(); }; menu.querySelector('[data-action="delete"]').onclick = () => { confirmDeleteItem(id, type, name, storagePath); closeMenu(); }; activeContextMenuClose = closeMenu; setTimeout(() => document.addEventListener('click', closeMenu), 10); }
+  function showContextMenu(e, id, type, name, storagePath = '') { 
+    if (!isAuthenticated) return; 
+    e.preventDefault(); 
+    const existing = document.querySelector('.context-menu-liquid'); 
+    if (existing) existing.remove(); 
+    if (activeContextMenuClose) document.removeEventListener('click', activeContextMenuClose); 
+    const menu = document.createElement('div'); 
+    menu.className = 'context-menu-liquid absolute bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[5000] min-w-[160px] p-2'; 
+    menu.style.left = e.pageX + 'px'; 
+    menu.style.top = e.pageY + 'px'; 
+    
+    let actionsHtml = '';
+    if (type === 'file') {
+      actionsHtml += `<div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="copy"><i class="fas fa-copy w-5 text-gray-400"></i> Copy to Clipboard</div><div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="download"><i class="fas fa-download w-5 text-gray-400"></i> Download</div>`;
+    }
+    
+    if (isAdmin()) {
+      actionsHtml += `
+        <div class="h-px bg-white/10 my-1 mx-2"></div>
+        <div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="rename"><i class="fas fa-pencil-alt w-5 text-gray-400"></i> Rename</div>
+        <div class="px-4 py-2.5 hover:bg-white/10 cursor-pointer text-gray-200 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="move"><i class="fas fa-exchange-alt w-5 text-gray-400"></i> Move</div>
+        <div class="h-px bg-white/10 my-1 mx-2"></div>
+        <div class="px-4 py-2.5 hover:bg-red-500/20 cursor-pointer text-red-400 font-medium text-sm rounded-lg transition-colors flex items-center" data-action="delete"><i class="fas fa-trash-alt w-5"></i> Delete</div>
+      `;
+    }
+
+    menu.innerHTML = actionsHtml;
+    document.body.appendChild(menu); 
+    
+    const closeMenu = () => { menu.remove(); document.removeEventListener('click', closeMenu); activeContextMenuClose = null; }; 
+    
+    if (type === 'file') {
+      menu.querySelector('[data-action="copy"]').onclick = () => { copyFileToClipboard(storagePath, name); closeMenu(); };
+      menu.querySelector('[data-action="download"]').onclick = () => { downloadFile(storagePath, name); closeMenu(); };
+    }
+    
+    if (isAdmin()) {
+      menu.querySelector('[data-action="rename"]').onclick = () => { renamePrompt(id, type, name); closeMenu(); }; 
+      menu.querySelector('[data-action="move"]').onclick = () => { movePrompt(id, type, name); closeMenu(); }; 
+      menu.querySelector('[data-action="delete"]').onclick = () => { confirmDeleteItem(id, type, name, storagePath); closeMenu(); }; 
+    }
+    
+    activeContextMenuClose = closeMenu; 
+    setTimeout(() => document.addEventListener('click', closeMenu), 10); 
+  }
+  
   function renamePrompt(id, type, oldName) { const newName = prompt('Enter new name:', oldName); if (!newName || newName === oldName) return; if (type === 'folder') renameFolder(id, newName); else renameFile(id, newName); }
   function movePrompt(id, type, name) { if (!isAdmin()) { showToast("Admin access required", true); return; } currentContextItem = { id, type, name, isBulk: false }; document.getElementById('movingItemName').innerHTML = `Moving: <strong class="text-blue-400 font-medium">${escapeHtml(name)}</strong>`; renderFolderTree(); document.getElementById('moveFileModal').classList.add('active'); }
   async function renderFolderTree() { const container = document.getElementById('folderTree'); await loadFolders(); let treeHtml = `<div class="folder-tree-item-liquid selected" data-folder-id="null"><i class="fas fa-home mr-3 text-blue-400"></i>Home Directory</div>`; function renderTree(items, level) { let html = ''; for (let item of items) { if (currentContextItem && !currentContextItem.isBulk && currentContextItem.id === item.id) continue; html += `<div class="folder-tree-item-liquid" style="margin-left: ${level * 20}px" data-folder-id="${item.id}"><i class="fas fa-folder mr-3 text-gray-500"></i>${escapeHtml(item.name)}</div>`; const children = folders.filter(f => f.parent_id === item.id); if (children.length) html += renderTree(children, level + 1); } return html; } const rootFolders = folders.filter(f => f.parent_id === null); treeHtml += renderTree(rootFolders, 1); container.innerHTML = treeHtml; container.querySelectorAll('.folder-tree-item-liquid').forEach(el => { el.addEventListener('click', async (e) => { e.stopPropagation(); const targetId = el.dataset.folderId === 'null' ? null : el.dataset.folderId; if (currentContextItem) { if (currentContextItem.isBulk) { for (let i = 0; i < currentContextItem.ids.length; i++) { await moveToFolder(currentContextItem.ids[i], currentContextItem.types[i], targetId); } selectedItems.clear(); updateBulkBar(); } else { await moveToFolder(currentContextItem.id, currentContextItem.type, targetId); } document.getElementById('moveFileModal').classList.remove('active'); currentContextItem = null; } container.querySelectorAll('.folder-tree-item-liquid').forEach(item => item.classList.remove('selected')); el.classList.add('selected'); }); }); }
@@ -1486,7 +1619,7 @@
   document.getElementById('headerSelectAll')?.addEventListener('change', (e) => { if (e.target.checked) selectAllItems(); else deselectAllItems(); });
   document.getElementById('selectAllBtn')?.addEventListener('click', () => { const headerCheckbox = document.getElementById('headerSelectAll'); if (headerCheckbox.checked) deselectAllItems(); else selectAllItems(); });
   document.getElementById('bulkMoveBtn')?.addEventListener('click', async () => { if (selectedItems.size === 0) return; currentContextItem = { ids: Array.from(selectedItems.keys()), types: Array.from(selectedItems.values()).map(v => v.type), isBulk: true }; renderFolderTree(); document.getElementById('moveFileModal').classList.add('active'); updateBulkBar(); });
-  document.getElementById('bulkDeleteBtn')?.addEventListener('click', async () => { if (selectedItems.size === 0) return; if (!confirm(`Delete ${selectedItems.size} items?`)) return; for (let [id, item] of selectedItems) { if (item.type === 'folder') await deleteFolder(id, item.name); else await deleteFile(id, item.storagePath, item.name); } selectedItems.clear(); updateBulkBar(); await renderContent(); showToast(`Deleted ${selectedItems.size} items`); });
+  document.getElementById('bulkDeleteBtn')?.addEventListener('click', async () => { if (selectedItems.size === 0) return; if (!confirm(`Delete ${selectedItems.size} items?`)) return; for (let [id, item] of selectedItems) { if (item.type === 'folder') await deleteFolder(id, item.name); else await deleteFile(id, item.storagePath, item.name); } selectedItems.clear(); updateBulkBar(); await renderContent(); showToast(`Deleted items`); });
   document.getElementById('bulkCancelBtn')?.addEventListener('click', () => { deselectAllItems(); });
   document.getElementById('journalBtn')?.addEventListener('click', openJournal);
   
